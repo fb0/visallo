@@ -26,7 +26,7 @@ define([
 
     const legacyFormattersError = _.once(() => console.error('Legacy property formatters not supported in table'));
 
-    const Card = createReactClass({
+    const SavedSearchTableCard = createReactClass({
         propTypes: {
             item: PropTypes.object.isRequired,
             extension: PropTypes.object.isRequired,
@@ -44,9 +44,7 @@ define([
                 tableData: {},
                 tableView: searchId && tableSettings && tableSettings[searchId] || {},
                 columnConfigure: false,
-                selectedObjects: visalloData.selectedObjects,
-                previousRowClickIndex: 0,
-                ontology: {}
+                previousRowClickIndex: 0
             };
         },
 
@@ -55,12 +53,11 @@ define([
         },
 
         componentDidMount() {
-            const self = this;
-            const { card, selectedObjects } = this.state;
+            const card = this.state.card;
             const { showError, item } = this.props;
             const searchId = item.configuration.searchId;
 
-            if (searchId) loadOntology().then(this.loadTable);
+            if (searchId) this.loadTable();
 
             this.onColumnResizeThrottled = _.throttle(this.onColumnResize, 1000 / 60);
 
@@ -76,13 +73,6 @@ define([
             $(this.cardRef).on('columnsConfigured', this.onColumnsConfigured);
             $(this.cardRef).on('sortConfigured', this.onSortConfigured);
             $(document).on('objectsSelected', this.onObjectsSelected);
-
-            function loadOntology() {
-                return self.dataRequest('ontology', 'ontology')
-                    .then((ontology) => {
-                        self.setState({ ontology: ontology });
-                    })
-            }
         },
 
         componentWillUnmount() {
@@ -90,6 +80,17 @@ define([
             $(document).off('objectsSelected', this.onObjectsSelected);
             $(this.cardRef).off('columnsConfigured', this.onColumnsConfigured);
             $(this.cardRef).off('sortConfigured', this.onSortConfigured);
+        },
+
+        componentWillReceiveProps(nextProps) {
+            const { concepts: nextConcepts, relationships: nextRelationships, properties: nextProperties } = nextProps;
+            const { concepts, relationships, properties } = this.props;
+
+            if (concepts !== nextConcepts ||
+                relationships !== nextRelationships ||
+                properties !== nextProperties) {
+                this.onRefreshData();
+            }
         },
 
         render() {
@@ -149,12 +150,14 @@ define([
         },
 
         transformDataToProps() {
-            const { tableData, tableView, selectedObjects } = this.state;
+            const { tableData, tableView } = this.state;
             const { searchId, tableSettings } = this.props.item.configuration;
             const url = tableView.url;
             const searchData = tableData[searchId];
             const activeTab = _.findKey(tableView, (tab) => tab.active || false);
-            const selected = getIdsFromSelectedObjects();
+            const selected = url.indexOf('vertex') > -1
+                ? this.props.selection.vertices
+                : this.props.selection.edges;
             const { sortColumn, direction } = tableView[activeTab];
 
             const data = {
@@ -172,14 +175,6 @@ define([
             }
 
             return data;
-
-            function getIdsFromSelectedObjects() {
-                const objects = url.indexOf('vertex') > -1 ?
-                    selectedObjects.vertices :
-                    selectedObjects.edges;
-
-                return objects.map(object => object.id);
-            }
         },
 
         loadTable() {
@@ -215,7 +210,7 @@ define([
                 .then(this.loadTabs)
                 .then((tabs) => {
                     if (Object.keys(tabs).length) {
-                        tableView = this.updateTabSettings(searchId, tabs);
+                        tableView = this.updateTabsSettings(searchId, tabs);
                         let activeTab = _.findKey(tableView, (tab) => tab.active || false);
 
                         if (!activeTab) {
@@ -246,7 +241,8 @@ define([
         },
 
         loadTabs() {
-            const { tableData, tableView, ontology } = this.state;
+            const { tableData, tableView } = this.state;
+            const { concepts, relationships, properties } = this.props;
             const { searchId, searchParameters } = this.props.item.configuration;
             const url = tableView.url;
             const options = buildAggregateSearchOptions(url, searchParameters);
@@ -254,10 +250,9 @@ define([
             return this.dataRequest('search', 'run', searchId, options)
                 .then((results) => {
                     const buckets = _.mapObject(results.aggregates.field.buckets, (val, type) => {
-                        const { properties, concepts, relationships } = ontology;
                         const displayName = url.indexOf('vertex') > -1 ?
-                            concepts.byId[type].displayName :
-                            relationships.byTitle[type].displayName;
+                            concepts[type].displayName :
+                            relationships[type].displayName;
 
                         return {...val, displayName: displayName};
                     });
@@ -350,14 +345,14 @@ define([
             }
 
             function transformResultsToRows(results) {
-                const ontologyProperties = self.state.ontology.properties;
+                const ontologyProperties = self.props.properties;
                 const F = self.props.visalloApi.v1.formatters;
                 const columns = tableView[activeTab].columns;
 
                 return Promise.map(results, (result) => {
                     return Promise.map(columns, ({ title }) => {
                         const values = [];
-                        const ontologyProperty = ontologyProperties.byTitle[title];
+                        const ontologyProperty = ontologyProperties[title];
                         const isCompoundField = !!ontologyProperty.dependentPropertyIris;
                         const properties = _.uniq(F.vertex.props(result, title), (property) => (
                             isCompoundField ? property.key : (property.key + property.name)
@@ -455,39 +450,64 @@ define([
             this.loadTable();
         },
 
-        updateTabSettings(searchId, tabs) {
+        updateTabsSettings(searchId, tabs) {
             const { tableView } = this.state;
-            const { item, extension, configurationChanged } = this.props;
+            const { item, extension, configurationChanged, concepts, relationships } = this.props;
             const configuration = item.configuration;
 
-            Object.keys(tabs).forEach((tabId) => {
-                if (!tableView[tabId]) {
-                    tableView[tabId] = this.getDefaultTabSettings(tabId);
-                }
-            });
+            const nextTableView = _.chain(tabs)
+                .omit((tab, tabId) => !concepts[tabId] && !relationships[tabId])
+                .mapObject(this.updateOrDefaultTabView)
+                .value();
+            nextTableView.url = tableView.url;
+            nextTableView.showRowNumbers = tableView.showRowNumbers;
 
-            this.updateTableView(tableView);
+            this.updateTableView(nextTableView);
 
-            return tableView;
+            return nextTableView;
         },
 
-        getDefaultTabSettings(tabId) {
-            const { tableView, ontology } = this.state;
-            const url = tableView.url;
-            const type = url.indexOf('vertex') > -1 ? 'vertex' : 'edge';
-            const properties = transformItemToTable(tabId, type, ontology);
+        updateOrDefaultTabView(tab, tabId) {
+            const { tableView } = this.state;
+            const { concepts, relationships, properties: ontologyProperties } = this.props;
+            const properties = transformItemToTable(
+                tabId,
+                tableView.url.indexOf('vertex') > -1 ? 'vertex' : 'edge',
+                { concepts, relationships, properties: ontologyProperties }
+            );
 
-            return {
-                ...DEFAULT_TAB_SETTINGS,
-                sortPropertyIri: '',
-                columns: properties
-            };
+            let tabView = { ...DEFAULT_TAB_SETTINGS };
+
+            if (tableView[tabId]) {
+                const { sortPropertyIri, direction, columns, active } = tableView[tabId];
+                const nextColumns = properties.reduce((merged, p) => {
+                    const column = columns.find(c => c.title === p.title);
+                    merged.push(column || p);
+                    return merged;
+                }, []);
+
+                tabView = {
+                    ...tabView,
+                    sortPropertyIri: properties[sortPropertyIri] ? sortPropertyIri : DEFAULT_TAB_SETTINGS.sortPropertyIri,
+                    direction: properties[sortPropertyIri] ? direction : DEFAULT_TAB_SETTINGS.direction,
+                    columns: nextColumns,
+                    active
+
+                };
+            } else {
+                tabView = {
+                    ...tabView,
+                    columns: properties
+                };
+            }
+
+            return tabView;
         },
 
         updateTableView(tableView, shouldSave) {
             this.setState({ tableView: tableView });
 
-            if (visalloData.currentWorkspaceEditable && shouldSave !== false) {
+            if (this.props.editable && shouldSave !== false) {
                 const { item, extension, configurationChanged } = this.props;
                 const { searchId, tableSettings } = item.configuration;
 
@@ -506,6 +526,7 @@ define([
         },
 
         switchToTab(tabId) {
+            
             let { tableView } = this.state;
             tableView = _.mapObject(tableView, (val, key) => {
                 if (_.isObject(val)) {
@@ -521,24 +542,20 @@ define([
             _.defer(() => {this.loadRows(0, PAGE_SIZE)});
         },
 
-        onObjectsSelected(event, data) {
-            this.setState({ selectedObjects: data });
-        },
-
         onRowClick(event, index) {
             const { tableData, tableView, previousRowClickIndex } = this.state;
             const { searchId } = this.props.item.configuration;
             const url = tableView.url;
-            let selectedObjects = this.state.selectedObjects;
+            let selection = this.props.selection;
             const activeTab = _.findKey(tableView, (tab) => tab.active || false);
             const tabData = tableData[searchId][activeTab];
-            const { vertices, edges } = selectedObjects;
-            selectedObjects = {
-                vertexIds: vertices.map(vertex => vertex.id),
-                edgeIds: edges.map(edge => edge.id)
+            const { vertices, edges } = selection;
+            const currentSelection = {
+                vertices: [...vertices],
+                edges: [...edges]
             };
-            const type = url.indexOf('vertex') ? 'vertexIds' : 'edgeIds';
-            let selectedIndicesForType = selectedObjects[type].map((id) => {
+            const type = url.indexOf('vertex') ? 'vertices' : 'edges';
+            let selectedIndicesForType = selection[type].map((id) => {
                 return parseInt(_.findIndex(tabData, (value) => value && value.id === id));
             });
 
@@ -549,24 +566,24 @@ define([
                     selectedIndicesForType.push(index);
                 }
 
-                selectedObjects[type] = getIdsFromRows(tabData, selectedIndicesForType);
+                currentSelection[type] = getIdsFromRows(tabData, selectedIndicesForType);
             } else if (event.shiftKey) {
                 const min = Math.min(index, previousRowClickIndex);
                 const max = Math.max(index, previousRowClickIndex);
 
                 selectedIndicesForType = _.range(min, max + 1);
-                selectedObjects[type] = getIdsFromRows(tabData, selectedIndicesForType);
+                currentSelection[type] = getIdsFromRows(tabData, selectedIndicesForType);
             } else {
                 const id = tabData[index].id;
-                selectedObjects[type] = [id];
+                currentSelection[type] = [id];
             }
 
             if (!event.shiftKey)  {
                 this.setState({ previousRowClickIndex: index });
             }
 
-            $(this.cardRef).trigger('selectObjects', selectedObjects);
-
+            
+            this.props.onSetSelection(currentSelection);
 
             function isDiscontiguousSelectionKeyPressed(evt) {
                 var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -589,7 +606,7 @@ define([
 
         onHeaderClick(header) {
             const self = this;
-            const { tableData, tableView, ontology } = this.state;
+            const { tableData, tableView } = this.state;
             const { searchId } = this.props.item.configuration;
             const activeTab = _.findKey(tableView, (tab) => tab.active || false);
             let tabSettings = tableView[activeTab];
@@ -600,7 +617,7 @@ define([
                 column.sortPropertyIri = getSortPropertyIri(header);
             }
             const sortPropertyIri = column.sortPropertyIri;
-            const isSortable = ontology.properties.byTitle[sortPropertyIri].sortable !== false;
+            const isSortable = this.props.properties[sortPropertyIri].sortable !== false;
 
             if (!isSortable) return;
 
@@ -615,8 +632,7 @@ define([
             this.loadRows(0, PAGE_SIZE);
 
             function getSortPropertyIri(title) {
-                const { properties } = self.state.ontology;
-                const ontologyProperty = properties.byTitle[title];
+                const ontologyProperty = this.props.properties[title];
                 const isCompoundField = !!ontologyProperty.dependentPropertyIris;
 
                 if (!isCompoundField) {
@@ -640,10 +656,11 @@ define([
 
         toggleColumnConfigPopover(event) {
             const self = this;
-            const { tableView, ontology} = this.state;
+            const tableView = this.state.tableView;
+            const properties = this.props.properties;
             const activeTab = _.findKey(tableView, (tab) => tab.active || false);
             const tabSettings = tableView[activeTab];
-            const sortConfig = getSortConfiguration(ontology.properties, tabSettings);
+            const sortConfig = getSortConfiguration(properties, tabSettings);
             const node = event.target;
             const configPopover = $(node).lookupComponent(columnConfigPopover);
 
@@ -661,11 +678,11 @@ define([
                 const column = tabSettings.sortColumn;
 
                 if (column) {
-                    const sortProperty = ontologyProperties.byTitle[column];
+                    const sortProperty = ontologyProperties[column];
                     const isCompoundProperty = !!sortProperty.dependentPropertyIris;
                     const sortableDependentProperties = isCompoundProperty ?
                         sortProperty.dependentPropertyIris.map((propertyIri) => {
-                            const property = ontologyProperties.byTitle[propertyIri];
+                            const property = ontologyProperties[propertyIri];
                             if (property.userVisible === false || property.sortable === false) {
                                 return null;
                             } else {
@@ -686,7 +703,7 @@ define([
         },
 
         onSortConfigured(event, data) {
-            const { tableView, tableData, ontology } = this.state;
+            const { tableView, tableData } = this.state;
             const { searchId } = this.props.item.configuration;
             const activeTab = _.findKey(tableView, (tab) => tab.active || false);
             const tabSettings = tableView[activeTab];
@@ -703,7 +720,7 @@ define([
             this.loadRows(0, PAGE_SIZE);
 
             function getPropertyIri(displayName) {
-                return ontology.properties.list.find((property) => property.displayName === displayName).title;
+                return this.props.properties.list.find((property) => property.displayName === displayName).title;
             }
         },
 
@@ -738,74 +755,41 @@ define([
         }
     });
 
-    return Card;
+    return SavedSearchTableCard;
 
-    function transformItemToTable(item, type, ontology) {
+    function transformItemToTable(iri, type, ontology) {
         const { concepts, relationships, properties: ontologyProperties } = ontology;
-        let concept, relationship;
+        const item = concepts[iri] || relationships[iri];
+        let dependents = [];
 
-        if (type === 'vertex') {
-            concept = concepts.byId[item];
-        } else {
-            relationship = _.find(relationships.list, function(relationship) {
-               return relationship.title === item;
-            });
-        }
-
-        let properties = concept ? getConceptProperties(concept) : getRelationshipProperties(relationship);
-
-        return transformProperties(properties);
-
-        function getConceptProperties(concept) {
-            return _.chain(concept.ancestors.slice())
-               .tap((conceptIris) => {
-                   conceptIris.push(concept.id);
-               })
-               .map((iri) => {
-                   return concepts.byId[iri].properties;
-               })
-               .flatten()
-               .tap((props) => {
-                   props.push('http://visallo.org#title');
-               })
-               .value();
-        }
-
-        function getRelationshipProperties(relationship) {
-            return _.flatten(relationship.properties);
-        }
-
-        function transformProperties(properties) {
-            let dependents = [];
-            return _.chain(properties)
-                .map((p) => {
-                    const property = ontologyProperties.byTitle[p];
-                    if (property.dependentPropertyIris) {
-                        dependents = dependents.concat(property.dependentPropertyIris)
-                    }
-                    return property;
-                })
-                .reject((p) => {
-                    return p.userVisible === false
-                        || _.contains(dependents, p.title)
-                        || p.displayType === 'longText';
-                })
-                .sortBy((p) => {
-                    if (p.title === 'http://visallo.org#title' || !p.displayName) {
-                        return Number.MAX_VALUE;
-                    }
-                    return p.displayName;
-                })
-                .map(({ title, displayName }) => {
-                    return {
-                        title: title,
-                        displayName: displayName,
-                        width: COLUMN_WIDTH,
-                        visible: true
-                    };
-                })
-                .value();
-        }
+        return _.chain(item.properties)
+            .map((p) => {
+                const property = ontologyProperties[p];
+                if (property.dependentPropertyIris) {
+                    dependents = dependents.concat(property.dependentPropertyIris)
+                }
+                return property;
+            })
+            .reject((p) => {
+                return p.userVisible === false
+                    || _.contains(dependents, p.title)
+                    || p.displayType === 'longText';
+            })
+            .sortBy((p) => {
+                if (p.title === 'http://visallo.org#title' || !p.displayName) {
+                    return Number.MAX_VALUE;
+                }
+                return p.displayName;
+            })
+            .map(({ title, displayName }) => {
+                return {
+                    title: title,
+                    displayName: displayName,
+                    width: COLUMN_WIDTH,
+                    visible: true
+                };
+            })
+            .value();
     }
 
     function isEmpty(searchId, tableData) {

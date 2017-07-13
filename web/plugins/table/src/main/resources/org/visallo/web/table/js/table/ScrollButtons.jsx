@@ -1,8 +1,8 @@
 define([
-    'react',
+    'prop-types',
     'classnames'
 ], function(
-    React,
+    PropTypes,
     classNames) {
     'use strict';
 
@@ -18,9 +18,9 @@ define([
     };
 
     ScrollButtons.propTypes = {
-        offset: React.PropTypes.number,
-        overflow: React.PropTypes.bool,
-        onScrollClick: React.PropTypes.func
+        offset: PropTypes.number,
+        overflow: PropTypes.bool,
+        onScrollClick: PropTypes.func
     };
 
     return ScrollButtons;

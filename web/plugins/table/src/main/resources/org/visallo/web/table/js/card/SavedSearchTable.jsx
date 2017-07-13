@@ -1,9 +1,9 @@
 define([
-    'react',
+    'prop-types',
     '../table/Tabs',
     '../table/Table'
 ], function(
-    React,
+    PropTypes,
     Tabs,
     Table) {
     'use strict';
@@ -25,19 +25,19 @@ define([
     };
 
     SavedSearchTable.propTypes = {
-        data: React.PropTypes.array.isRequired,
-        columns: React.PropTypes.array.isRequired,
-        tabs: React.PropTypes.object.isRequired,
-        activeTab: React.PropTypes.string,
-        sort: React.PropTypes.object,
-        selected: React.PropTypes.array,
-        showRowNumbers: React.PropTypes.bool,
-        onRowsRendered: React.PropTypes.func,
-        onTabClick: React.PropTypes.func,
-        onHeaderClick: React.PropTypes.func,
-        onRowClick: React.PropTypes.func,
-        onColumnResize: React.PropTypes.func,
-        onConfigureColumnsClick: React.PropTypes.func
+        data: PropTypes.array.isRequired,
+        columns: PropTypes.array.isRequired,
+        tabs: PropTypes.object.isRequired,
+        activeTab: PropTypes.string,
+        sort: PropTypes.object,
+        selected: PropTypes.array,
+        showRowNumbers: PropTypes.bool,
+        onRowsRendered: PropTypes.func,
+        onTabClick: PropTypes.func,
+        onHeaderClick: PropTypes.func,
+        onRowClick: PropTypes.func,
+        onColumnResize: PropTypes.func,
+        onConfigureColumnsClick: PropTypes.func
     };
 
     return SavedSearchTable;

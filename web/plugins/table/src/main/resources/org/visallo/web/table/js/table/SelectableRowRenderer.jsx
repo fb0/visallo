@@ -1,7 +1,5 @@
 /*forked from https://github.com/bvaughn/react-virtualized/blob/master/source/FlexTable/defaultRowRenderer.js */
-define([
-    'react'
-], function(React) {
+define([], function() {
     'use strict';
 
     return SelectableRowRenderer;

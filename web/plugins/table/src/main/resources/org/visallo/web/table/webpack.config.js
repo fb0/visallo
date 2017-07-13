@@ -8,17 +8,22 @@ var VisalloAmdExternals = [
  'react',
  'create-react-class',
  'prop-types',
- 'react-dom'
+ 'react-dom',
+ 'redux',
+ 'react-redux',
+ 'data/web-worker/store/selection/actions',
+ 'data/web-worker/store/product/selectors',
+ 'data/web-worker/store/ontology/selectors'
 ].map(path => ({ [path]: { amd: path }}));
 
 module.exports = {
   entry: {
-    card: './js/card/Card.jsx'
+    card: './js/card/SavedSearchTableContainer.jsx'
   },
   output: {
     path: './dist',
-    filename: '[name].js',
-    library: '[name]',
+    filename: 'Card.js',
+    library: 'Card',
     libraryTarget: 'umd',
   },
   externals: VisalloAmdExternals,
@@ -26,11 +31,13 @@ module.exports = {
     extensions: ['', '.js', '.jsx', '.hbs']
   },
   module: {
-    loaders: [{
-        test: /\.jsx?$/,
-        include: path.join(__dirname, 'js'),
-        loaders: ['babel-loader']
-      }]
+    loaders: [
+        {
+            test: /\.jsx?$/,
+            exclude: /(node_modules)/,
+            loader: 'babel'
+        }
+    ]
   },
   devtool: 'source-map',
   plugins: [

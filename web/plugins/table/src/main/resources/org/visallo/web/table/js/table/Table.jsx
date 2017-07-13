@@ -7,7 +7,6 @@ define([
 ], function(
     createReactClass,
     PropTypes,
-    React,
     ReactVirtualized,
     ReactResizable,
     SelectableRowRenderer) {
