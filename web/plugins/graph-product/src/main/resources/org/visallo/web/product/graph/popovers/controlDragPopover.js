@@ -36,7 +36,7 @@ define([
             if (component === 'createConnectionPopover') {
                 require(['./createConnectionPopover'], attach);
             } else if (component === 'findPathPopover') {
-                require(['./findPathPopoverShim'], attach);
+                require(['./findPath/findPathPopoverShim'], attach);
             }
         }
 

@@ -1,6 +1,6 @@
 define([
     'flight/lib/component',
-    './withVertexPopover',
+    '../withVertexPopover',
     'util/component/attacher'
 ], function(defineComponent,
             withVertexPopover,

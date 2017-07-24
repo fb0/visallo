@@ -1,10 +1,10 @@
 define([
     './controlDragPopover',
-    './findPathPopoverShim',
+    './findPath/findPathPopoverShim',
     './createConnectionPopover',
     './controlDragPopoverTpl',
     './createConnectionPopoverTpl',
-    './findPathPopoverTpl'
+    './findPath/findPathPopoverTpl'
 ], function(ControlDrag, FindPath, CreateConnection) {
 
     return function(connectionType) {
