@@ -945,20 +945,22 @@ define([
                 renderedNodeIds[id] = true;
 
                 if (ghosts) {
-                    _.mapObject(ghosts, (ghost => {
-                        if (ghost.id in cyNode.vertexIds) {
+                    _.mapObject(ghosts, ((ghost, ghostId) => {
+                        if (cyNode.data.vertexIds.includes(ghostId)) {
                             const ghostData = {
-                                ...cyNode.data,
-                                id: `${cyNode.data.id}-ANIMATING`,
+                                ...mapVertexToData(ghostId, vertices, registry['org.visallo.graph.node.transformer'], hovering),
+                                parent: rootNode.id,
+                                id: `${ghostId}-ANIMATING`,
                                 animateTo: {
-                                    id,
+                                    id: ghostId,
                                     pos: {...cyNode.position}
                                 }
                             };
-                            delete ghostData.parent;
+
                             nodes.push({
                                 ...cyNode,
                                 data: ghostData,
+                                classes: mapVertexToClasses(ghostId, vertices, focusing, registry['org.visallo.graph.node.class']),
                                 position: retina.pointsToPixels(ghosts[id]),
                                 grabbable: false,
                                 selectable: false

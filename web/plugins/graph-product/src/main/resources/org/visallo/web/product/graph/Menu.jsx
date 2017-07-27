@@ -98,7 +98,7 @@ define([
                     </li>
                     ) : null}
 
-                    {editable && hasSelection ? (
+                    {editable && cy.nodes().filter(':selected').length > 1 ? (
                             <li><a className="requires-EDIT" onMouseUp={this.props.onEvent} data-func="CollapseSelectedNodes" tabIndex="-1" href="#">{i18n('graph.contextmenu.collapse')}</a></li>
                     ) : null}
 

@@ -111,13 +111,12 @@ define([
             const vertex = vertices[vertexId];
             if (!vertex) {
                 resolve(null);
-                //return reject(new Error(`Could not find vertex: ${vertexId}`));
             }
-            const vertexImageUrl = F.vertex.selectedImage(vertex, null, 150);
+            const vertexImageUrl = F.vertex.image(vertex, null, 150);
             const image = document.createElement('img');
             image.onload = () => {
                 if (image.naturalHeight === 0 || image.naturalWidth === 0) {
-                    return reject(new Error(`Invalid image: ${vertexImageUrl}`));
+                    reject(new Error(`Invalid image: ${vertexImageUrl}`));
                 }
                 resolve(image);
             };
@@ -136,20 +135,20 @@ define([
             return {
                 centerX: (size / 3) * (index + 1),
                 centerY: size / 2,
-                size: size / 3
+                size: size / 3.5
             };
         } else if (number === 3) {
             if (index === 0) {
                 return {
                     centerX: size / 2,
                     centerY: size / 3,
-                    size: size / 3
+                    size: size / 3.5
                 };
             } else {
                 return {
                     centerX: (size / 3) * index,
                     centerY: 2 * (size / 3),
-                    size: size / 3
+                    size: size / 3.5
                 };
             }
         } else {
