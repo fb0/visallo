@@ -381,7 +381,12 @@ define([
         createCollapsedItemMenuItems() {
             return [
                 {
-                    label: i18n('vertex.contextmenu.uncollapse'),
+                    label: i18n('vertex.contextmenu.collapsed-node.rename'),
+                    event: 'editCollapsedNode',
+                    cls: 'requires-EDIT'
+                },
+                {
+                    label: i18n('vertex.contextmenu.collapsed-node.uncollapse'),
                     event: 'uncollapse',
                     cls: 'requires-EDIT'
                 }

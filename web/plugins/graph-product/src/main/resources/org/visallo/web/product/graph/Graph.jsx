@@ -165,6 +165,10 @@ define([
                         }
                     });
                 },
+                editCollapsedNode: (event, { collapsedNodeId }) => { this.onEditCollapsedNode(collapsedNodeId)},
+                renameCollapsedNode: (event, { collapsedNodeId, title }) => {
+                    this.props.onRenameCollapsedNode(this.props.product.id, collapsedNodeId, title)
+                },
                 uncollapse: (event, { collapsedNodeId }) => {
                     this.props.onUncollapseNodes(this.props.product.id, collapsedNodeId);
                 },
@@ -592,12 +596,29 @@ define([
                 position = { x: window.lastMousePositionX, y: window.lastMousePositionY };
             }
 
-
             if (this.props.workspace.editable) {
                 Promise.require('util/popovers/fileImport/fileImport')
                     .then(CreateVertex => {
                         CreateVertex.attachTo(this.node, {
                             anchorTo: { page: position }
+                        });
+                    });
+            }
+        },
+
+        onEditCollapsedNode(collapsedNodeId) {
+            const collapsedNode = this.cytoscape.state.cy.getElementById(collapsedNodeId);
+            if (this.props.workspace.editable && collapsedNode) {
+                Promise.require('org/visallo/web/product/graph/popovers/collapsedNode/collapsedNodePopoverShim')
+                    .then(CollapsedNodePopover => {
+                        CollapsedNodePopover.attachTo(this.node, {
+                            cy: this.cytoscape.state.cy,
+                            cyNode: collapsedNode,
+                            props: {
+                                onRename: this.props.onRenameCollapsedNode.bind(this, this.props.product.id, collapsedNodeId),
+                                collapsedNodeId: collapsedNodeId
+                            },
+                            teardownOnTap: true
                         });
                     });
             }
@@ -808,12 +829,14 @@ define([
                    const vertexIds = getVertexIdsFromCollapsedNode(collapsedNodes, id);
                    selected = vertexIds.some(id => id in verticesSelectedById)
                    classes = mapCollapsedNodeToClasses(id, collapsedNodes, focusing, vertexIds, registry['org.visallo.graph.collapsed.class']);
+                   const nodeTitle = title || generateCollapsedNodeTitle(node, vertices, productVertices, collapsedNodes);
                    data = {
                        ...node,
                        vertexIds,
-                       truncatedTitle: title || F.string.truncate(generateCollapsedNodeTitle(node, vertices, productVertices, collapsedNodes), 3),
+                       truncatedTitle: F.string.truncate(nodeTitle, 3),
                        imageSrc: this.state.collapsedImageDataUris[id] && this.state.collapsedImageDataUris[id].imageDataUri || 'img/loading-large@2x.png'
-                   }
+                   };
+                   if (title) { data.title = title; }
                 }
 
                 return {

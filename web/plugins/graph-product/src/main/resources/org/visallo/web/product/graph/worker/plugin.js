@@ -10,6 +10,7 @@ define([
             switch (type) {
                 case 'PRODUCT_GRAPH_SET_POSITIONS': return updateOrAddElements(state, payload);
                 case 'PRODUCT_GRAPH_REMOVE_ELEMENTS': return removeElements(state, payload);
+                case 'PRODUCT_GRAPH_RENAME_COLLAPSED_NODE': return renameCollapsedNode(state, payload);
                 case 'PRODUCT_ADD_EDGE_IDS': return addEdges(state, payload);
 
                 case 'ELEMENT_UPDATE': return updateVisibleCollapsedNodes(state, payload);
@@ -158,6 +159,10 @@ define([
                 }
             }
         }, state);
+    }
+
+    function renameCollapsedNode(state, { title, collapsedNodeId, productId, workspaceId }) {
+        return u.updateIn(`workspaces.${workspaceId}.products.${productId}.extendedData.compoundNodes.${collapsedNodeId}.title`, title, state);
     }
 
     function updateVisibleCollapsedNodes(state, {workspaceId, vertices}) {

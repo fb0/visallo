@@ -16,6 +16,7 @@ import org.visallo.web.WebApp;
 import org.visallo.web.WebAppPlugin;
 import org.visallo.web.privilegeFilters.EditPrivilegeFilter;
 import org.visallo.web.product.graph.routes.CollapseVertices;
+import org.visallo.web.product.graph.routes.NodeSetTitle;
 import org.visallo.web.product.graph.routes.RemoveVertices;
 import org.visallo.web.product.graph.routes.UpdateVertices;
 
@@ -48,6 +49,7 @@ public class GraphWebAppPlugin implements WebAppPlugin {
         app.post("/product/graph/vertices/collapse", authenticationHandlerClass, csrfHandlerClass, EditPrivilegeFilter.class, CollapseVertices.class);
         app.post("/product/graph/vertices/remove", authenticationHandlerClass, csrfHandlerClass, EditPrivilegeFilter.class, RemoveVertices.class);
         app.post("/product/graph/vertices/update", authenticationHandlerClass, csrfHandlerClass, EditPrivilegeFilter.class, UpdateVertices.class);
+        app.post("/product/graph/node/rename", authenticationHandlerClass, csrfHandlerClass, EditPrivilegeFilter.class, NodeSetTitle.class);
 
         app.registerJavaScript("/org/visallo/web/product/graph/plugin.js");
 
@@ -55,10 +57,15 @@ public class GraphWebAppPlugin implements WebAppPlugin {
         app.registerCompiledJavaScript("/org/visallo/web/product/graph/dist/EdgeLabel.js");
         app.registerCompiledJavaScript("/org/visallo/web/product/graph/dist/SnapToGrid.js");
         app.registerCompiledJavaScript("/org/visallo/web/product/graph/dist/FindPathPopoverContainer.js");
+        app.registerCompiledJavaScript("/org/visallo/web/product/graph/dist/CollapsedNodePopoverConfig.js");
         app.registerCompiledJavaScript("/org/visallo/web/product/graph/dist/actions-impl.js");
 
         app.registerCompiledWebWorkerJavaScript("/org/visallo/web/product/graph/dist/plugin-worker.js");
         app.registerCompiledWebWorkerJavaScript("/org/visallo/web/product/graph/dist/store-changes.js");
+
+        app.registerJavaScript("/org/visallo/web/product/graph/popovers/collapsedNode/collapsedNodePopoverShim.js", false);
+        app.registerJavaScript("/org/visallo/web/product/graph/popovers/withVertexPopover.js", false);
+        app.registerJavaScriptTemplate("/org/visallo/web/product/graph/popovers/collapsedNode/collapsedNodePopoverTpl.hbs");
 
         app.registerLess("/org/visallo/web/product/graph/css.less");
         app.registerResourceBundle("/org/visallo/web/product/graph/messages.properties");

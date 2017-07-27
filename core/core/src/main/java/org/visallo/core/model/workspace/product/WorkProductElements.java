@@ -122,7 +122,7 @@ public abstract class WorkProductElements implements WorkProduct, WorkProductHas
 
     protected abstract void updateProductEdge(ElementUpdateContext<Edge> elemCtx, JSONObject update, Visibility visibility);
 
-    protected String getEdgeId(String productId, String vertexId) {
+    public static String getEdgeId(String productId, String vertexId) {
         return productId + "_hasVertex_" + vertexId;
     }
 }

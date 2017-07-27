@@ -12,4 +12,6 @@ public class GraphProductOntology {
     public static final JsonSingleValueVisalloProperty ENTITY_POSITION = new JsonSingleValueVisalloProperty("http://visallo.org/workspace/product/graph#entityPosition");
     public static final StringSingleValueVisalloProperty PARENT_NODE = new StringSingleValueVisalloProperty("http://visallo.org/workspace/product/graph#parentNode");
     public static final JsonArraySingleValueVisalloProperty NODE_CHILDREN = new JsonArraySingleValueVisalloProperty("http://visallo.org/workspace/product/graph#nodeChildren");
+    public static final StringSingleValueVisalloProperty NODE_TITLE = new StringSingleValueVisalloProperty("http://visallo.org/workspace/product/graph#nodeTitle");
+
 }

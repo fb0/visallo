@@ -58,6 +58,17 @@
 
 
 
+    <!-- http://visallo.org/workspace/product/graph#nodeTitle -->
+
+    <owl:DatatypeProperty rdf:about="http://visallo.org/workspace/product/graph#nodeTitle">
+        <visallo:objectPropertyDomain rdf:resource="http://visallo.org/workspace/product#toEntity"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <visallo:textIndexHints>NONE</visallo:textIndexHints>
+        <visallo:userVisible>false</visallo:userVisible>
+    </owl:DatatypeProperty>
+
+
+
 
     <!--
     ///////////////////////////////////////////////////////////////////////////////////////

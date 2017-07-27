@@ -99,7 +99,8 @@ module.exports = [
             Graph: './GraphContainer.jsx',
             EdgeLabel: './options/EdgeLabel.jsx',
             SnapToGrid: './options/SnapToGrid.jsx',
-            FindPathPopoverContainer: './popovers/finddPath/FindPathPopoverContainer.jsx'
+            FindPathPopoverContainer: './popovers/findPath/FindPathPopoverContainer.jsx',
+            CollapsedNodePopoverConfig: './popovers/collapsedNode/CollapsedNodePopoverConfig.jsx'
         },
         target: 'web'
     })

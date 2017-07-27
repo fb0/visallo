@@ -35,7 +35,7 @@ public class GraphWorkProduct extends WorkProductElements {
     private final AuthorizationRepository authorizationRepository;
     private final GraphRepository graphRepository;
     private final UserRepository userRepository;
-    private static final VisalloVisibility VISIBILITY = new VisalloVisibility(WorkspaceRepository.VISIBILITY_STRING);
+    public static final VisalloVisibility VISIBILITY = new VisalloVisibility(WorkspaceRepository.VISIBILITY_STRING);
     private static final String ROOT_NODE_ID = "root";
 
     @Inject
@@ -554,6 +554,7 @@ public class GraphWorkProduct extends WorkProductElements {
         JSONObject position = ENTITY_POSITION.getPropertyValue(propertyVertexEdge);
         String parent = GraphProductOntology.PARENT_NODE.getPropertyValue(propertyVertexEdge, ROOT_NODE_ID);
         JSONArray children = GraphProductOntology.NODE_CHILDREN.getPropertyValue(propertyVertexEdge);
+        String title = GraphProductOntology.NODE_TITLE.getPropertyValue(propertyVertexEdge);
 
         if (position == null) {
             position = new JSONObject();
@@ -569,6 +570,9 @@ public class GraphWorkProduct extends WorkProductElements {
             vertex.put("type", "vertex");
         }
 
+        if (title != null) {
+            vertex.put("title", title);
+        }
         vertex.put("parent", parent);
     }
 }
