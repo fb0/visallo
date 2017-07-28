@@ -365,8 +365,8 @@ define([
         render() {
             const { items, title, element } = this.state;
 
-            return (<div className="vertex-menu" ref="menuDiv">
-                { items.length &&
+            return (items.length ?
+                <div className="vertex-menu" ref="menuDiv">
                     <ElementContextMenuList
                         items={items}
                         elementTitle={title}
@@ -374,23 +374,25 @@ define([
                         element={element}
                         onMenuItemClick={this.handleMenuItemClick}
                     />
-                }
-            </div>);
+                </div>
+            : null);
         },
 
         createCollapsedItemMenuItems() {
-            return [
+            const items = [
                 {
                     label: i18n('vertex.contextmenu.collapsed-node.rename'),
                     event: 'editCollapsedNode',
-                    cls: 'requires-EDIT'
+                    canHandle: () => visalloData.currentWorkspaceEditable
                 },
                 {
                     label: i18n('vertex.contextmenu.collapsed-node.uncollapse'),
                     event: 'uncollapse',
-                    cls: 'requires-EDIT'
+                    canHandle: () => visalloData.currentWorkspaceEditable
                 }
             ];
+
+            return items.filter(item => _.isFunction(item.canHandle) ? item.canHandle() : true);
         },
 
         createEdgeMenuItems() {
