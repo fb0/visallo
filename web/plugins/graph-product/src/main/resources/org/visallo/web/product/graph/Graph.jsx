@@ -166,9 +166,6 @@ define([
                     });
                 },
                 editCollapsedNode: (event, { collapsedNodeId }) => { this.onEditCollapsedNode(collapsedNodeId)},
-                renameCollapsedNode: (event, { collapsedNodeId, title }) => {
-                    this.props.onRenameCollapsedNode(this.props.product.id, collapsedNodeId, title)
-                },
                 uncollapse: (event, { collapsedNodeId }) => {
                     this.props.onUncollapseNodes(this.props.product.id, collapsedNodeId);
                 },
@@ -836,7 +833,6 @@ define([
                        truncatedTitle: F.string.truncate(nodeTitle, 3),
                        imageSrc: this.state.collapsedImageDataUris[id] && this.state.collapsedImageDataUris[id].imageDataUri || 'img/loading-large@2x.png'
                    };
-                   if (title) { data.title = title; }
                 }
 
                 return {

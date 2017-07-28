@@ -7,7 +7,12 @@ define([
     'use strict';
 
     const CollapsedNodePopoverConfig = createReactClass({
-        propTypes: {},
+        propTypes: {
+            collapsedNode: PropTypes.object,
+            collapsedNodeId: PropTypes.string.isRequired,
+            close: PropTypes.func.isRequired,
+            onRename: PropTypes.func.isRequired
+        },
 
         getInitialState() {
             return {}
@@ -35,7 +40,7 @@ define([
         render() {
             const { title } = this.state;
             const { title: initialTitle } = this.props.collapsedNode;
-            const hasChanges = initialTitle ? title !== initialTitle: title !== undefined;
+            const hasChanges = title !== undefined && title !== initialTitle;
 
             return (
                 <div className="title-edit">
