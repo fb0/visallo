@@ -12,6 +12,7 @@ import org.visallo.core.model.ontology.OntologyRepository;
 import org.visallo.core.model.ontology.Relationship;
 import org.visallo.core.model.user.InMemoryGraphAuthorizationRepository;
 import org.visallo.core.model.user.PrivilegeRepository;
+import org.visallo.core.model.workspace.WorkspaceRepository;
 import org.visallo.core.security.VisalloVisibility;
 import org.visallo.core.user.SystemUser;
 import org.visallo.core.user.User;
@@ -27,7 +28,6 @@ import static org.visallo.core.model.ontology.OntologyRepository.PUBLIC;
 import static org.visallo.core.model.user.UserRepository.USER_CONCEPT_IRI;
 
 public abstract class OntologyRouteTestBase extends RouteTestBase {
-    static final String WORKSPACE_ID = "junit-workspace";
     static final String PUBLIC_CONCEPT_IRI = "public-concept-a";
     static final String PUBLIC_CONCEPT_IRI_B = "public-concept-b";
     static final String PUBLIC_RELATIONSHIP_IRI = "public-relationship";
@@ -59,6 +59,11 @@ public abstract class OntologyRouteTestBase extends RouteTestBase {
                 @Override
                 protected PrivilegeRepository getPrivilegeRepository() {
                     return OntologyRouteTestBase.this.privilegeRepository;
+                }
+
+                @Override
+                protected WorkspaceRepository getWorkspaceRepository() {
+                    return OntologyRouteTestBase.this.workspaceRepository;
                 }
             };
         } catch (Exception e) {

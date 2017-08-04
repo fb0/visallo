@@ -1947,7 +1947,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
             throw new VisalloAccessDeniedException("You must provide a valid user to perform this action", null, null);
         }
 
-        if (workspaceId == null) {
+        if (isPublic(workspaceId)) {
             if (!getPrivilegeRepository().hasPrivilege(user, Privilege.ONTOLOGY_PUBLISH)) {
                 throw new VisalloAccessDeniedException("User does not have ONTOLOGY_PUBLISH privilege", user, null);
             }

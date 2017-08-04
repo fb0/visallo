@@ -3,6 +3,7 @@ package org.visallo.core.model.longRunningProcess;
 import com.google.inject.Injector;
 import org.json.JSONObject;
 import org.mockito.Mock;
+import org.vertexium.Authorizations;
 import org.vertexium.Graph;
 import org.vertexium.inmemory.InMemoryGraph;
 import org.visallo.core.model.graph.GraphRepository;
@@ -12,6 +13,7 @@ import org.visallo.core.model.user.UserRepository;
 import org.visallo.core.model.workQueue.WorkQueueRepository;
 import org.visallo.core.security.VisibilityTranslator;
 import org.visallo.core.status.MetricsManager;
+import org.visallo.core.user.SystemUser;
 import org.visallo.core.user.User;
 import org.visallo.core.util.VisalloLogger;
 import org.visallo.core.util.VisalloLoggerFactory;
@@ -26,6 +28,8 @@ public class LongRunningProcessWorkerTestBase {
     private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(LongRunningProcessWorkerTestBase.class);
     private Graph graph;
     private GraphRepository graphRepository;
+
+    private SystemUser systemUser = new SystemUser();
 
     @Mock
     private User user;
@@ -51,12 +55,16 @@ public class LongRunningProcessWorkerTestBase {
     private TermMentionRepository termMentionRepository;
     @Mock
     private WorkQueueRepository workQueueRepository;
+    @Mock
+    private Authorizations systemUserAuthorizations;
 
     protected void before() {
         graph = InMemoryGraph.create();
         when(metricsManager.counter(any())).thenReturn(mockCounter);
         when(metricsManager.timer(any())).thenReturn(mockTimer);
         when(metricsManager.meter(any())).thenReturn(mockMeter);
+        when(userRepository.getSystemUser()).thenReturn(systemUser);
+        when(authorizationRepository.getGraphAuthorizations(systemUser)).thenReturn(systemUserAuthorizations);
     }
 
     protected void prepare(LongRunningProcessWorker worker) {
