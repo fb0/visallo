@@ -1,6 +1,8 @@
 define(['../actions', '../../util/ajax'], function(actions, ajax) {
     actions.protectFromMain();
 
+    const ACTION_UPDATE = 'Update';
+    const ACTION_DELETE = 'Delete';
     const anyNotEmpty = ({ conceptIds, relationshipIds, propertyIds }) => _.any([conceptIds, relationshipIds, propertyIds], l => !_.isEmpty(l))
     const add = (type, listName) => ({ workspaceId, key, ...rest }) => dispatch => {
         const obj = rest[type];
@@ -79,7 +81,12 @@ define(['../actions', '../../util/ajax'], function(actions, ajax) {
             payload: { type, key, error }
         }),
 
-        ontologyChange: ({ workspaceId, conceptIds, relationshipIds, propertyIds }) => (dispatch, getState) => {
+        remove: ({ workspaceId, concepts, relationships, properties }) => ({
+            type: 'ONTOLOGY_REMOVE_IRIS',
+            payload: { workspaceId, concepts, relationships, properties }
+        }),
+
+        ontologyChange: ({ workspaceId, action, idType, conceptIds, relationshipIds, propertyIds }) => (dispatch, getState) => {
             const state = getState();
             const isPublishedChanged = !workspaceId;
             const ids = { conceptIds, relationshipIds, propertyIds };
@@ -93,23 +100,34 @@ define(['../actions', '../../util/ajax'], function(actions, ajax) {
             }
 
             if (isPublishedChanged) {
-                let otherWorkspaces = Object.keys(state.ontology);
-                if (currentWorkspaceId) {
-                    otherWorkspaces = _.without(otherWorkspaces, currentWorkspaceId);
-                }
-                dispatch(api.invalidate({ workspaceIds: otherWorkspaces }));
-                if (currentWorkspaceId) {
-                    if (hasIds) {
-                        return requestWithIds(currentWorkspaceId, ids);
-                    } else {
-                        dispatch(api.get({ currentWorkspaceId, invalidate: true }));
+                if (action === ACTION_UPDATE) {
+                    let otherWorkspaces = Object.keys(state.ontology);
+                    if (currentWorkspaceId) {
+                        otherWorkspaces = _.without(otherWorkspaces, currentWorkspaceId);
                     }
-                }
+                    dispatch(api.invalidate({ workspaceIds: otherWorkspaces }));
+                    if (currentWorkspaceId) {
+                        if (hasIds) {
+                            return requestWithIds(currentWorkspaceId, ids);
+                        } else {
+                            dispatch(api.get({ currentWorkspaceId, invalidate: true }));
+                        }
+                    }
+                } else throw new Error(`Published action: ${action} not supported`);
             } else {
                 const workspaceInStore = workspaceId in state.ontology;
                 if (workspaceInStore) {
                     if (hasIds) {
-                        return requestWithIds(workspaceId, ids);
+                        if (action === ACTION_UPDATE) {
+                            return requestWithIds(workspaceId, ids);
+                        } else if (action === ACTION_DELETE) {
+                            dispatch(api.remove({
+                                workspaceId,
+                                concepts: conceptIds,
+                                relationships: relationshipIds,
+                                properties: propertyIds
+                            }));
+                        } else throw new Error(`Action: ${action} not supported`);
                     } else {
                         dispatch(api.get({ workspaceId, invalidate: true }))
                     }

@@ -20,6 +20,7 @@ import org.semanticweb.owlapi.model.*;
 import org.vertexium.*;
 import org.vertexium.mutation.ExistingElementMutation;
 import org.vertexium.property.StreamingPropertyValue;
+import org.vertexium.query.GraphQuery;
 import org.vertexium.util.CloseableUtils;
 import org.vertexium.util.ConvertingIterable;
 import org.visallo.core.bootstrap.InjectHelper;
@@ -569,6 +570,34 @@ public class VertexiumOntologyRepository extends OntologyRepositoryBase {
         return transformConcepts(graph.getVertices(ids, getAuthorizations(workspaceId)), workspaceId);
     }
 
+    private void internalDeleteObject(Vertex vertex, String workspaceId) {
+        Authorizations authorizations = getAuthorizations(workspaceId);
+        Iterable<EdgeInfo> edges = vertex.getEdgeInfos(Direction.BOTH, authorizations);
+        for (EdgeInfo edge : edges) {
+            graph.deleteEdge(edge.getEdgeId(), authorizations);
+        }
+        graph.deleteVertex(vertex.getId(), authorizations);
+    }
+
+    @Override
+    protected void internalDeleteConcept(Concept concept, String workspaceId) {
+        Vertex vertex = ((VertexiumConcept) concept).getVertex();
+        internalDeleteObject(vertex, workspaceId);
+    }
+
+    @Override
+    protected void internalDeleteProperty(OntologyProperty property, String workspaceId) {
+        Vertex vertex = ((VertexiumOntologyProperty) property).getVertex();
+        internalDeleteObject(vertex, workspaceId);
+    }
+
+    @Override
+    protected void internalDeleteRelationship(Relationship relationship, String workspaceId) {
+        Vertex vertex = ((VertexiumRelationship) relationship).getVertex();
+        internalDeleteObject(vertex, workspaceId);
+    }
+
+
     @Override
     protected Concept internalGetOrCreateConcept(Concept parent, String conceptIRI, String displayName, String glyphIconHref, String color, File inDir, boolean deleteChangeableProperties, User user, String workspaceId) {
         Concept concept = getConceptByIRI(conceptIRI, workspaceId);
@@ -1076,6 +1105,7 @@ public class VertexiumOntologyRepository extends OntologyRepositoryBase {
         return graph.createAuthorizations(publicOntologyAuthorizations, ArrayUtils.add(otherAuthorizations, workspaceId));
     }
 
+    @Override
     protected Graph getGraph() {
         return graph;
     }

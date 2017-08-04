@@ -122,11 +122,10 @@ define([
         },
         onCreate() {
             const domain = {};
-            if (this.props.conceptId) {
-                domain.conceptIris = [this.state.domain];
-            }
             if (this.props.relationshipId) {
                 domain.relationshipIris = [this.state.domain];
+            } else {
+                domain.conceptIris = [this.state.domain];
             }
             const [dataType, displayType] = this.state.type.split('|');
 

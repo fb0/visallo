@@ -8,6 +8,7 @@ define(['updeep'], function(u) {
             case 'ONTOLOGY_PARTIAL_UPDATE': return updatePartial(state, payload);
             case 'ONTOLOGY_IRI_CREATED': return updateIri(state, payload);
             case 'ONTOLOGY_INVALIDATE': return invalidate(state, payload);
+            case 'ONTOLOGY_REMOVE_IRIS': return remove(state, payload);
         }
 
         return state;
@@ -27,6 +28,17 @@ define(['updeep'], function(u) {
                 properties: _.mapObject(properties, o => u.constant(o)),
             }
         }, state)
+    }
+
+    function remove(state, payload) {
+        const { workspaceId, ...iris } = payload;
+        const updates = {}
+        _.each(iris, (list, type) => {
+            if (_.isArray(list) && list.length) {
+                updates[type] = u.omit(list);
+            }
+        })
+        return u({ [workspaceId]: updates }, state)
     }
 
     function invalidate(state, { workspaceIds = [] }) {
