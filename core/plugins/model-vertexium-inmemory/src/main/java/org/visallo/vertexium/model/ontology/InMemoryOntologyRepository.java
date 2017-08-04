@@ -579,6 +579,27 @@ public class InMemoryOntologyRepository extends OntologyRepositoryBase {
     }
 
     @Override
+    protected void internalDeleteConcept(Concept concept, String workspaceId) {
+        String cacheKey = workspaceId;
+        Map<String, InMemoryConcept> workspaceCache = conceptsCache.compute(cacheKey, (k, v) -> v == null ? new HashMap<>() : v);
+        workspaceCache.remove(concept.getIRI());
+    }
+
+    @Override
+    protected void internalDeleteProperty(OntologyProperty property, String workspaceId) {
+        String cacheKey = workspaceId;
+        Map<String, InMemoryOntologyProperty> workspaceCache = propertiesCache.compute(cacheKey, (k, v) -> v == null ? new HashMap<>() : v);
+        workspaceCache.remove(property.getIri());
+    }
+
+    @Override
+    protected void internalDeleteRelationship(Relationship relationship, String workspaceId) {
+        String cacheKey = workspaceId;
+        Map<String, InMemoryRelationship> workspaceCache = relationshipsCache.compute(cacheKey, (k, v) -> v == null ? new HashMap<>() : v);
+        workspaceCache.remove(relationship.getIRI());
+    }
+
+    @Override
     protected List<Concept> getChildConcepts(Concept concept, String workspaceId) {
         Map<String, InMemoryConcept> workspaceConcepts = computeConceptCacheForWorkspace(workspaceId);
         return workspaceConcepts.values().stream()

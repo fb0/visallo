@@ -205,6 +205,8 @@ public interface OntologyRepository {
 
     Set<Relationship> getRelationshipAndAllChildren(Relationship relationship, String workspaceId);
 
+    Set<Relationship> getRelationshipAndAllChildrenByIRI(String relationshipIRI, String workspaceId);
+
     Relationship getParentRelationship(Relationship relationship, String workspaceId);
 
     Set<Relationship> getAncestorRelationships(Relationship relationship, String workspaceId);
@@ -212,6 +214,12 @@ public interface OntologyRepository {
     Set<Relationship> getRelationshipAndAncestors(Relationship relationship, String workspaceId);
 
     Iterable<Concept> getConcepts(Iterable<String> ids, String workspaceId);
+
+    void deleteConcept(String conceptTypeIri, User user, String workspaceId);
+
+    void deleteProperty(String conceptTypeIri, User user, String workspaceId);
+
+    void deleteRelationship(String conceptTypeIri, User user, String workspaceId);
 
     /**
      * @deprecated With the addition of ontology sandboxing, ontology elements must now be retrieved with

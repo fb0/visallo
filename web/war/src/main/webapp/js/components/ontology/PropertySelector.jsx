@@ -96,12 +96,18 @@ define([
 
             removeEmptyHeaders(options)
 
+            let usesLegacyFilterProperties = false;
+            if (creatable && filter && filter.properties) {
+                console.warn('Creating properties when using old filter syntax (passing properties) is not supported');
+                usesLegacyFilterProperties = true;
+            }
+
             return (
                 <BaseSelect
                     createForm={'components/ontology/PropertyForm'}
                     formProps={formProps}
                     options={options}
-                    creatable={creatable && Boolean(privileges.ONTOLOGY_ADD)}
+                    creatable={creatable && !usesLegacyFilterProperties && Boolean(privileges.ONTOLOGY_ADD)}
                     {...rest} />
             );
         }

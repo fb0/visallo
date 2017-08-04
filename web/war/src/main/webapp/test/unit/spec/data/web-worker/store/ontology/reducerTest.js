@@ -51,6 +51,46 @@ define([
             )
         })
 
-    })
+        it('should remove from ontology', () => {
+            let state = {
+                [workspaceId]: {
+                    concepts: {
+                        x: {displayName: 'x'},
+                        y: {displayName: 'y'}
+                    },
+                    relationships: {
+                        x: {displayName: 'x'},
+                        y: {displayName: 'y'}
+                    },
+                    properties: {
+                        x: {displayName: 'x'},
+                        y: {displayName: 'y'}
+                    }
+                }
+            }
+            const nextState = reducer({ w1: {}}, {
+                type: 'ONTOLOGY_REMOVE_IRIS',
+                payload: {
+                    workspaceId,
+                    concepts: ['y']
+                }
+            });
+            nextState.should.deep.equal({
+                [workspaceId]: {
+                    concepts: {
+                        x: {displayName: 'x'}
+                    },
+                    relationships: {
+                        x: {displayName: 'x'},
+                        y: {displayName: 'y'}
+                    },
+                    properties: {
+                        x: {displayName: 'x'},
+                        y: {displayName: 'y'}
+                    }
+                }
+            });
+        })
 
+    })
 })

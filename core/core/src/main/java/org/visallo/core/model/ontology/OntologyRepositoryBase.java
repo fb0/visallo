@@ -26,6 +26,7 @@ import org.vertexium.Graph;
 import org.vertexium.TextIndexHint;
 import org.vertexium.property.StreamingPropertyValue;
 import org.vertexium.query.Contains;
+import org.vertexium.query.GraphQuery;
 import org.vertexium.query.Query;
 import org.vertexium.util.CloseableUtils;
 import org.vertexium.util.ConvertingIterable;
@@ -43,6 +44,7 @@ import org.visallo.core.model.termMention.TermMentionRepository;
 import org.visallo.core.model.user.PrivilegeRepository;
 import org.visallo.core.model.user.UserRepository;
 import org.visallo.core.model.workspace.WorkspaceRepository;
+import org.visallo.core.model.workspace.WorkspaceUser;
 import org.visallo.core.ping.PingOntology;
 import org.visallo.core.user.SystemUser;
 import org.visallo.core.user.User;
@@ -50,10 +52,7 @@ import org.visallo.core.util.ExecutorServiceUtil;
 import org.visallo.core.util.OWLOntologyUtil;
 import org.visallo.core.util.VisalloLogger;
 import org.visallo.core.util.VisalloLoggerFactory;
-import org.visallo.web.clientapi.model.ClientApiOntology;
-import org.visallo.web.clientapi.model.Privilege;
-import org.visallo.web.clientapi.model.PropertyType;
-import org.visallo.web.clientapi.model.UserType;
+import org.visallo.web.clientapi.model.*;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -74,7 +73,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
     private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(OntologyRepositoryBase.class);
     private final Configuration configuration;
     private final LockRepository lockRepository;
-
+    private WorkspaceRepository workspaceRepository;
     private PrivilegeRepository privilegeRepository;
 
     @Inject
@@ -1040,6 +1039,12 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
     }
 
     @Override
+    public Set<Relationship> getRelationshipAndAllChildrenByIRI(String relationshipIRI, String workspaceId) {
+        Relationship relationship = getRelationshipByIRI(relationshipIRI, workspaceId);
+        return getRelationshipAndAllChildren(relationship, workspaceId);
+    }
+
+    @Override
     public Set<Relationship> getRelationshipAndAllChildren(Relationship relationship, String workspaceId) {
         List<Relationship> childRelationships = getChildRelationships(relationship, workspaceId);
         Set<Relationship> result = Sets.newHashSet(relationship);
@@ -1734,6 +1739,90 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
         return searchable;
     }
 
+    protected abstract Graph getGraph();
+
+    protected abstract void internalDeleteConcept(Concept concept, String workspaceId);
+
+    protected abstract void internalDeleteProperty(OntologyProperty property, String workspaceId);
+
+    protected abstract void internalDeleteRelationship(Relationship relationship, String workspaceId);
+
+    public void deleteConcept(String conceptTypeIri, User user, String workspaceId) {
+        checkDeletePrivileges(user, workspaceId);
+
+        Set<Concept> concepts = getConceptAndAllChildrenByIri(conceptTypeIri, workspaceId);
+        if (concepts.size() == 1) {
+            for (Concept concept : concepts) {
+                if (concept.getSandboxStatus().equals(SandboxStatus.PRIVATE)) {
+                    Graph graph = getGraph();
+                    Authorizations authorizations = graph.createAuthorizations(OntologyRepository.VISIBILITY_STRING, workspaceId);
+                    GraphQuery query = graph.query(authorizations);
+                    addConceptTypeFilterToQuery(query, concept.getIRI(), false, workspaceId);
+                    query.limit(0);
+                    long results = query.search().getTotalHits();
+                    if (results == 0) {
+                        internalDeleteConcept(concept, workspaceId);
+                    } else {
+                        throw new VisalloException("Unable to delete concept that have vertices assigned to it");
+                    }
+                } else {
+                    throw new VisalloException("Unable to delete published concepts");
+                }
+            }
+        } else throw new VisalloException("Unable to delete concept that have children");
+    }
+
+
+    public void deleteProperty(String propertyIri, User user, String workspaceId) {
+        checkDeletePrivileges(user, workspaceId);
+
+        OntologyProperty property = getPropertyByIRI(propertyIri, workspaceId);
+        if (property != null) {
+            if (property.getSandboxStatus().equals(SandboxStatus.PRIVATE)) {
+                Graph graph = getGraph();
+                Authorizations authorizations = graph.createAuthorizations(workspaceId);
+                GraphQuery query = graph.query(authorizations);
+                query.has(propertyIri);
+                query.limit(0);
+                long results = query.search().getTotalHits();
+                if (results == 0) {
+                    internalDeleteProperty(property, workspaceId);
+                } else {
+                    throw new VisalloException("Unable to delete property that have vertices using it");
+                }
+            } else {
+                throw new VisalloException("Unable to delete published properties");
+            }
+
+        } else throw new VisalloResourceNotFoundException("Property not found");
+    }
+
+
+    public void deleteRelationship(String relationshipIri, User user, String workspaceId) {
+        checkDeletePrivileges(user, workspaceId);
+
+        Set<Relationship> relationships = getRelationshipAndAllChildrenByIRI(relationshipIri, workspaceId);
+        if (relationships.size() == 1) {
+            for (Relationship relationship : relationships) {
+                if (relationship.getSandboxStatus().equals(SandboxStatus.PRIVATE)) {
+                    Graph graph = getGraph();
+                    Authorizations authorizations = graph.createAuthorizations(OntologyRepository.VISIBILITY_STRING, workspaceId);
+                    GraphQuery query = graph.query(authorizations);
+                    addEdgeLabelFilterToQuery(query, relationshipIri, false, workspaceId);
+                    query.limit(0);
+                    long results = query.search().getTotalHits();
+                    if (results == 0) {
+                        internalDeleteRelationship(relationship, workspaceId);
+                    } else {
+                        throw new VisalloException("Unable to delete relationship that have edges using it");
+                    }
+                } else {
+                    throw new VisalloException("Unable to delete published relationships");
+                }
+            }
+        } else throw new VisalloException("Unable to delete relationship that have children");
+    }
+
     @Deprecated
     @Override
     public final void addConceptTypeFilterToQuery(Query query, String conceptTypeIri, boolean includeChildNodes) {
@@ -1850,8 +1939,6 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
     public abstract void internalPublishProperty(OntologyProperty property, User user, String workspaceId);
 
     protected void checkPrivileges(User user, String workspaceId) {
-        // TODO: check that the user has access to the workspace
-
         if (user != null && user.getUserType() == UserType.SYSTEM) {
             return;
         }
@@ -1860,10 +1947,40 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
             throw new VisalloAccessDeniedException("You must provide a valid user to perform this action", null, null);
         }
 
-        if (workspaceId == null && !getPrivilegeRepository().hasPrivilege(user, Privilege.ONTOLOGY_PUBLISH)) {
-            throw new VisalloAccessDeniedException("User does not have ONTOLOGY_PUBLISH privilege", user, null);
-        } else if (!getPrivilegeRepository().hasPrivilege(user, Privilege.ONTOLOGY_ADD)) {
-            throw new VisalloAccessDeniedException("User does not have ONTOLOGY_ADD privilege", user, null);
+        if (workspaceId == null) {
+            if (!getPrivilegeRepository().hasPrivilege(user, Privilege.ONTOLOGY_PUBLISH)) {
+                throw new VisalloAccessDeniedException("User does not have ONTOLOGY_PUBLISH privilege", user, null);
+            }
+        } else {
+            List<WorkspaceUser> users = getWorkspaceRepository().findUsersWithAccess(workspaceId, user);
+            boolean access = users.stream()
+                    .anyMatch(workspaceUser ->
+                            workspaceUser.getUserId().equals(user.getUserId()) &&
+                                    workspaceUser.getWorkspaceAccess().equals(WorkspaceAccess.WRITE));
+
+            if (!access) {
+                throw new VisalloAccessDeniedException("User does not have access to workspace", user, null);
+            }
+
+            if (!getPrivilegeRepository().hasPrivilege(user, Privilege.ONTOLOGY_ADD)) {
+                throw new VisalloAccessDeniedException("User does not have ONTOLOGY_ADD privilege", user, null);
+            }
+        }
+    }
+
+    protected void checkDeletePrivileges(User user, String workspaceId) {
+        if (user != null && user.getUserType() == UserType.SYSTEM) {
+            return;
+        }
+
+        if (user == null) {
+            throw new VisalloAccessDeniedException("You must provide a valid user to perform this action", null, null);
+        }
+
+        if (workspaceId == null) {
+            throw new VisalloAccessDeniedException("User does not have access to delete published ontology items", user, null);
+        } else if (!getPrivilegeRepository().hasPrivilege(user, Privilege.ADMIN)) {
+            throw new VisalloAccessDeniedException("User does not have admin privilege", user, null);
         }
     }
 
@@ -1899,6 +2016,13 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
             privilegeRepository = InjectHelper.getInstance(PrivilegeRepository.class);
         }
         return privilegeRepository;
+    }
+
+    protected WorkspaceRepository getWorkspaceRepository() {
+        if (workspaceRepository == null) {
+            workspaceRepository = InjectHelper.getInstance(WorkspaceRepository.class);
+        }
+        return workspaceRepository;
     }
 
     protected abstract void deleteChangeableProperties(OntologyElement element, Authorizations authorizations);
