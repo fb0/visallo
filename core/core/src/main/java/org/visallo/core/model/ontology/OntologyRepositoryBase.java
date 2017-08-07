@@ -1754,14 +1754,31 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
         if (concepts.size() == 1) {
             for (Concept concept : concepts) {
                 if (concept.getSandboxStatus().equals(SandboxStatus.PRIVATE)) {
+                    for (Relationship relationship : getRelationships(workspaceId)) {
+                        if (relationship.getDomainConceptIRIs().contains(conceptTypeIri) ||
+                            relationship.getRangeConceptIRIs().contains(conceptTypeIri)) {
+                            throw new VisalloException("Unable to delete concept that is used in domain/range of relationship");
+                        }
+                    }
                     Graph graph = getGraph();
-                    Authorizations authorizations = graph.createAuthorizations(OntologyRepository.VISIBILITY_STRING, workspaceId);
+                    Authorizations authorizations = graph.createAuthorizations(workspaceId);
                     GraphQuery query = graph.query(authorizations);
                     addConceptTypeFilterToQuery(query, concept.getIRI(), false, workspaceId);
                     query.limit(0);
                     long results = query.search().getTotalHits();
                     if (results == 0) {
+                        List<OntologyProperty> removeProperties = concept.getProperties().stream().filter(ontologyProperty ->
+                                ontologyProperty.getSandboxStatus().equals(SandboxStatus.PRIVATE) &&
+                                ontologyProperty.getRelationshipIris().size() == 0 &&
+                                ontologyProperty.getConceptIris().size() == 1 &&
+                                ontologyProperty.getConceptIris().get(0).equals(conceptTypeIri)
+                        ).collect(Collectors.toList());
+
                         internalDeleteConcept(concept, workspaceId);
+
+                        for (OntologyProperty property : removeProperties) {
+                            internalDeleteProperty(property, workspaceId);
+                        }
                     } else {
                         throw new VisalloException("Unable to delete concept that have vertices assigned to it");
                     }
@@ -1769,7 +1786,9 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
                     throw new VisalloException("Unable to delete published concepts");
                 }
             }
-        } else throw new VisalloException("Unable to delete concept that have children");
+        } else {
+            throw new VisalloException("Unable to delete concept that have children");
+        }
     }
 
 
@@ -1788,7 +1807,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
                 if (results == 0) {
                     internalDeleteProperty(property, workspaceId);
                 } else {
-                    throw new VisalloException("Unable to delete property that have vertices using it");
+                    throw new VisalloException("Unable to delete property that have elements using it");
                 }
             } else {
                 throw new VisalloException("Unable to delete published properties");
@@ -1806,13 +1825,23 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
             for (Relationship relationship : relationships) {
                 if (relationship.getSandboxStatus().equals(SandboxStatus.PRIVATE)) {
                     Graph graph = getGraph();
-                    Authorizations authorizations = graph.createAuthorizations(OntologyRepository.VISIBILITY_STRING, workspaceId);
+                    Authorizations authorizations = graph.createAuthorizations(workspaceId);
                     GraphQuery query = graph.query(authorizations);
                     addEdgeLabelFilterToQuery(query, relationshipIri, false, workspaceId);
                     query.limit(0);
                     long results = query.search().getTotalHits();
                     if (results == 0) {
+                        List<OntologyProperty> removeProperties = relationship.getProperties().stream().filter(ontologyProperty ->
+                                ontologyProperty.getSandboxStatus().equals(SandboxStatus.PRIVATE) &&
+                                    ontologyProperty.getConceptIris().size() == 0 &&
+                                    ontologyProperty.getRelationshipIris().size() == 1 &&
+                                    ontologyProperty.getRelationshipIris().get(0).equals(relationshipIri)
+                        ).collect(Collectors.toList());
                         internalDeleteRelationship(relationship, workspaceId);
+
+                        for (OntologyProperty property : removeProperties) {
+                            internalDeleteProperty(property, workspaceId);
+                        }
                     } else {
                         throw new VisalloException("Unable to delete relationship that have edges using it");
                     }
