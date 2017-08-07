@@ -21,8 +21,9 @@ define([
                     this.before('teardown', function() {
                         this.attacher.teardown();
                     });
-                });
 
+                    this.positionDialog();
+                });
         };
 
         this.getTemplate = function() {
