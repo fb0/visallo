@@ -23,7 +23,7 @@ define([
     const ELEMENT_SIZE = 45;
     const PROPERTY_UPDATE_SIZE = 75;
     const PROPERTY_NEW_SIZE = 40;
-    const AVERAGE_ROW_SIZE = (ELEMENT_SIZE + PROPERTY_UPDATE_SIZE + PROPERTY_NEW_SIZE) / 3;
+    const AVERAGE_ROW_SIZE = Math.round((ELEMENT_SIZE + PROPERTY_UPDATE_SIZE + PROPERTY_NEW_SIZE) / 3);
 
     function lookupTitle(diffTitle, titles, vertexId) {
         let str = diffTitle;
@@ -356,6 +356,23 @@ define([
 
         componentDidMount() {
             this.getTitles = debounceAfterFirst(this.getTitles);
+            this.scrollTop = 0;
+        },
+
+        componentDidUpdate(prevProps) {
+            const { flatDiffs } = this.props;
+            const { flatDiffs: previousFlatDiffs } = prevProps;
+            const List = this._List;
+
+            if (List) {
+                if (previousFlatDiffs !== flatDiffs) {
+                    List.recomputeRowHeights();
+                }
+                if (this.scrollTop > 0) {
+                    // HACK: Need to pass decimal to force update. Have to look at virtualized-grid
+                    List.scrollToPosition(this.scrollTop + 0.1);
+                }
+            }
         },
 
         render() {
@@ -380,6 +397,7 @@ define([
                             <AutoSizer>
                             {({ height, width }) => (
                                 <List
+                                    ref={r => {this._List = r }}
                                     width={width}
                                     height={height}
                                     rowCount={flatDiffs.length}
@@ -387,6 +405,7 @@ define([
                                     rowHeight={rowHeight}
                                     rowRenderer={rowRenderer}
                                     onRowsRendered={onRowsRendered}
+                                    onScroll={this.onScroll}
                                 />
                             )}
                             </AutoSizer>
@@ -394,6 +413,10 @@ define([
                     </div>
                 </div>
             );
+        },
+
+        onScroll({ scrollTop }) {
+            this.scrollTop = scrollTop;
         },
 
         getTitles(startIndex, stopIndex) {
