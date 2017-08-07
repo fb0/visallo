@@ -5,20 +5,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import org.apache.commons.compress.utils.IOUtils;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.semanticweb.owlapi.model.IRI;
-import org.vertexium.Authorizations;
-import org.vertexium.TextIndexHint;
+import org.vertexium.*;
 import org.vertexium.util.IterableUtils;
 import org.visallo.core.exception.VisalloAccessDeniedException;
 import org.visallo.core.exception.VisalloException;
+import org.visallo.core.model.properties.VisalloProperties;
+import org.visallo.core.model.workspace.Workspace;
 import org.visallo.core.user.SystemUser;
 import org.visallo.core.user.User;
 import org.visallo.core.util.VisalloInMemoryTestBase;
-import org.visallo.web.clientapi.model.ClientApiOntology;
-import org.visallo.web.clientapi.model.Privilege;
-import org.visallo.web.clientapi.model.PropertyType;
-import org.visallo.web.clientapi.model.SandboxStatus;
+import org.visallo.web.clientapi.model.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -50,6 +50,7 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
     private static final String SANDBOX_CONCEPT_IRI = "sandbox-concept-iri";
     private static final String SANDBOX_RELATIONSHIP_IRI = "sandbox-relationship-iri";
     private static final String SANDBOX_PROPERTY_IRI = "sandbox-property-iri";
+    private static final String SANDBOX_PROPERTY_IRI_ONLY_SANDBOXED_CONCEPT = "sandbox-property-iri2";
     private static final String SANDBOX_DISPLAY_NAME = "Sandbox Display";
     private static final String PUBLIC_CONCEPT_IRI = "public-concept-iri";
     private static final String PUBLIC_RELATIONSHIP_IRI = "public-relationship-iri";
@@ -61,12 +62,26 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
 
     private Authorizations authorizations;
     private User user;
+    private User adminUser;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void before() {
         super.before();
         authorizations = getGraph().createAuthorizations();
         user = getUserRepository().findOrAddUser("junit", "Junit", "junit@visallo.com", "password");
+        Workspace workspace = getWorkspaceRepository().add(workspaceId, "Junit Workspace", user);
+        if (getPrivilegeRepository().hasPrivilege(user, Privilege.ADMIN)) {
+            fail("User shouldn't have admin");
+        }
+
+        adminUser = getUserRepository().findOrAddUser("junit-admin", "Junit Admin", "junit-admin@visallo.com", "password");
+        Set<String> privileges = Privilege.ALL_BUILT_IN.stream().map(privilege -> privilege.getName()).collect(Collectors.toSet());
+        setPrivileges(adminUser, privileges);
+
+        getWorkspaceRepository().updateUserOnWorkspace(workspace, adminUser.getUserId(), WorkspaceAccess.WRITE, systemUser);
     }
 
     @Test
@@ -119,10 +134,10 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
 
     @Test
     public void testGenerateIri() throws Exception {
-        assertEquals("Should lowercase","http://visallo.org/xxx#545f80459971026861f7d0a767a058474788f5d8", getOntologyRepository().generateDynamicIri(Concept.class, "XxX", "w0"));
-        assertEquals("Extended data should change hash","http://visallo.org/xxx#a3ee0f2fcbb97cd46570913b304940dfd563d0dd", getOntologyRepository().generateDynamicIri(Concept.class, "XxX", "w0", "1"));
-        assertEquals("replace spaces","http://visallo.org/s_1_2_3#b326c1112fdf23093cc7b2b964294a9afd2530ec", getOntologyRepository().generateDynamicIri(Concept.class, " S 1 2 3 ", "w0"));
-        assertEquals("replace non-alpha-num","http://visallo.org/a_a1#4db31fddc58acba07547c744ee9f1edae49ad22d", getOntologyRepository().generateDynamicIri(Concept.class, "a !@#A$%1^&*()<>?\":{}=+),[]\\|`~", "w0"));
+        assertEquals("Should lowercase", "http://visallo.org/xxx#545f80459971026861f7d0a767a058474788f5d8", getOntologyRepository().generateDynamicIri(Concept.class, "XxX", "w0"));
+        assertEquals("Extended data should change hash", "http://visallo.org/xxx#a3ee0f2fcbb97cd46570913b304940dfd563d0dd", getOntologyRepository().generateDynamicIri(Concept.class, "XxX", "w0", "1"));
+        assertEquals("replace spaces", "http://visallo.org/s_1_2_3#b326c1112fdf23093cc7b2b964294a9afd2530ec", getOntologyRepository().generateDynamicIri(Concept.class, " S 1 2 3 ", "w0"));
+        assertEquals("replace non-alpha-num", "http://visallo.org/a_a1#4db31fddc58acba07547c744ee9f1edae49ad22d", getOntologyRepository().generateDynamicIri(Concept.class, "a !@#A$%1^&*()<>?\":{}=+),[]\\|`~", "w0"));
 
 
         StringBuilder valid = new StringBuilder();
@@ -131,8 +146,8 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
             if (i < OntologyRepositoryBase.MAX_DISPLAY_NAME) valid.append("a");
             invalid.append("a");
         }
-        assertEquals("length check valid","http://visallo.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#2f36190a6f38c1c1d1bc7d8a5e1f00cd71e5dc74", getOntologyRepository().generateDynamicIri(Concept.class, valid.toString(), "w0"));
-        assertEquals("length/hash check invalid","http://visallo.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#2f36190a6f38c1c1d1bc7d8a5e1f00cd71e5dc74", getOntologyRepository().generateDynamicIri(Concept.class, invalid.toString(), "w0"));
+        assertEquals("length check valid", "http://visallo.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#2f36190a6f38c1c1d1bc7d8a5e1f00cd71e5dc74", getOntologyRepository().generateDynamicIri(Concept.class, valid.toString(), "w0"));
+        assertEquals("length/hash check invalid", "http://visallo.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#2f36190a6f38c1c1d1bc7d8a5e1f00cd71e5dc74", getOntologyRepository().generateDynamicIri(Concept.class, invalid.toString(), "w0"));
 
     }
 
@@ -180,6 +195,228 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
 
         assertNull(relationshipsByIri.get("http://www.w3.org/2002/07/owl#topObjectProperty").getParentIRI());
         assertEquals("http://www.w3.org/2002/07/owl#topObjectProperty", relationshipsByIri.get("http://visallo.org/testhierarchy#personKnowsPerson").getParentIRI());
+    }
+
+    @Test(expected = VisalloAccessDeniedException.class)
+    public void testExceptionWhenDeletingPublicConcepts() throws Exception {
+        createSampleOntology();
+        getOntologyRepository().deleteConcept(PUBLIC_CONCEPT_IRI, user, null);
+    }
+
+    @Test(expected = VisalloAccessDeniedException.class)
+    public void testExceptionWhenDeletingSandboxedConceptsAsNonAdmin() throws Exception {
+        createSampleOntology();
+        getOntologyRepository().deleteConcept(SANDBOX_CONCEPT_IRI, user, workspaceId);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedConceptsWithVertices() throws Exception {
+        createSampleOntology();
+        Concept concept = getOntologyRepository().getConceptByIRI(SANDBOX_CONCEPT_IRI, workspaceId);
+        assertTrue("Concept exists", concept != null && concept.getIRI().equals(SANDBOX_CONCEPT_IRI));
+
+        VisibilityJson json = VisibilityJson.updateVisibilitySourceAndAddWorkspaceId(new VisibilityJson(), "", workspaceId);
+        Visibility visibility = getVisibilityTranslator().toVisibility(json).getVisibility();
+        VertexBuilder vb = getGraph().prepareVertex(visibility);
+        vb.setProperty(VisalloProperties.CONCEPT_TYPE.getPropertyName(), SANDBOX_CONCEPT_IRI, visibility);
+        vb.save(authorizations);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete concept that have vertices assigned to it");
+        getOntologyRepository().deleteConcept(SANDBOX_CONCEPT_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedConceptsWithDescendants() throws Exception {
+        SampleOntologyDetails ontology = createSampleOntology();
+        Concept concept = getOntologyRepository().getConceptByIRI(SANDBOX_CONCEPT_IRI, workspaceId);
+
+        // Add a descendant
+        getOntologyRepository().getOrCreateConcept(concept, SANDBOX_CONCEPT_IRI + "child", SANDBOX_DISPLAY_NAME, null, systemUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete concept that have children");
+        getOntologyRepository().deleteConcept(SANDBOX_CONCEPT_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedConceptsWithRelationshipsDomain() throws Exception {
+        createSampleOntology();
+        Concept concept = getOntologyRepository().getConceptByIRI(SANDBOX_CONCEPT_IRI, workspaceId);
+
+        // Add an edge type
+        List<Concept> things = Collections.singletonList(getOntologyRepository().getEntityConcept(workspaceId));
+        getOntologyRepository().getOrCreateRelationshipType(null, Arrays.asList(concept), things, "sandboxed-relationship-withsandboxed-concepts", true, adminUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete concept that is used in domain/range of relationship");
+        getOntologyRepository().deleteConcept(SANDBOX_CONCEPT_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedConceptsWithRelationshipsRange() throws Exception {
+        createSampleOntology();
+        Concept concept = getOntologyRepository().getConceptByIRI(SANDBOX_CONCEPT_IRI, workspaceId);
+
+        // Add an edge type
+        List<Concept> things = Collections.singletonList(getOntologyRepository().getEntityConcept(workspaceId));
+        getOntologyRepository().getOrCreateRelationshipType(null, things, Arrays.asList(concept), "sandboxed-relationship-withsandboxed-concepts", true, adminUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete concept that is used in domain/range of relationship");
+        getOntologyRepository().deleteConcept(SANDBOX_CONCEPT_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testDeletingSandboxedConcepts() throws Exception {
+        createSampleOntology();
+        Concept concept = getOntologyRepository().getConceptByIRI(SANDBOX_CONCEPT_IRI, workspaceId);
+        assertTrue("Concept exists", concept != null && concept.getIRI().equals(SANDBOX_CONCEPT_IRI));
+
+        OntologyProperty property = getOntologyRepository().getPropertyByIRI(SANDBOX_PROPERTY_IRI_ONLY_SANDBOXED_CONCEPT, workspaceId);
+        assertTrue("Property exists", property != null && property.getIri().equals(SANDBOX_PROPERTY_IRI_ONLY_SANDBOXED_CONCEPT));
+        assertTrue("Concept has property", concept.getProperties().stream().anyMatch(ontologyProperty -> ontologyProperty.getIri().equals(SANDBOX_PROPERTY_IRI_ONLY_SANDBOXED_CONCEPT)));
+
+        getOntologyRepository().deleteConcept(SANDBOX_CONCEPT_IRI, adminUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        concept = getOntologyRepository().getConceptByIRI(SANDBOX_CONCEPT_IRI, workspaceId);
+        assertTrue("Concept should have been deleted", concept == null);
+
+        property = getOntologyRepository().getPropertyByIRI(SANDBOX_PROPERTY_IRI_ONLY_SANDBOXED_CONCEPT, workspaceId);
+        assertTrue("Property only used in this concept is deleted", property == null);
+
+        property = getOntologyRepository().getPropertyByIRI(SANDBOX_PROPERTY_IRI, workspaceId);
+        assertTrue("Property used in other concepts is updated", property != null);
+        assertEquals(1, property.getConceptIris().size());
+        assertEquals(PUBLIC_CONCEPT_IRI, property.getConceptIris().get(0));
+    }
+
+    @Test(expected = VisalloAccessDeniedException.class)
+    public void testExceptionWhenDeletingPublicProperties() throws Exception {
+        createSampleOntology();
+        getOntologyRepository().deleteProperty(PUBLIC_PROPERTY_IRI, user, null);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedPropertiesWithVertices() throws Exception {
+        createSampleOntology();
+
+        VisibilityJson json = VisibilityJson.updateVisibilitySourceAndAddWorkspaceId(new VisibilityJson(), "", workspaceId);
+        Visibility visibility = getVisibilityTranslator().toVisibility(json).getVisibility();
+        VertexBuilder vb = getGraph().prepareVertex(visibility);
+        vb.setProperty(SANDBOX_PROPERTY_IRI, "a value", visibility);
+        vb.save(authorizations);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete property that have elements using it");
+        getOntologyRepository().deleteProperty(SANDBOX_PROPERTY_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedPropertiesWithEdges() throws Exception {
+        createSampleOntology();
+
+        VisibilityJson json = VisibilityJson.updateVisibilitySourceAndAddWorkspaceId(new VisibilityJson(), "", workspaceId);
+        Visibility visibility = getVisibilityTranslator().toVisibility(json).getVisibility();
+
+        Vertex source = getGraph().prepareVertex(visibility).save(authorizations);
+        Vertex target = getGraph().prepareVertex(visibility).save(authorizations);
+
+        EdgeBuilder edgeBuilder = getGraph().prepareEdge(source, target, SANDBOX_RELATIONSHIP_IRI, visibility);
+        edgeBuilder.setProperty(SANDBOX_PROPERTY_IRI, "a value", visibility);
+        edgeBuilder.save(authorizations);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete property that have elements using it");
+        getOntologyRepository().deleteProperty(SANDBOX_PROPERTY_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testDeletingProperties() throws Exception {
+        createSampleOntology();
+        OntologyProperty property = getOntologyRepository().getPropertyByIRI(SANDBOX_PROPERTY_IRI, workspaceId);
+        assertTrue("Property exists", property != null);
+        getOntologyRepository().deleteProperty(SANDBOX_PROPERTY_IRI, adminUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        property = getOntologyRepository().getPropertyByIRI(SANDBOX_PROPERTY_IRI, workspaceId);
+        assertTrue("Property is deleted", property == null);
+    }
+
+    @Test(expected = VisalloAccessDeniedException.class)
+    public void testExceptionWhenDeletingPublicRelationships() throws Exception {
+        createSampleOntology();
+        getOntologyRepository().deleteRelationship(PUBLIC_RELATIONSHIP_IRI, user, null);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedRelationshipsWithEdges() throws Exception {
+        createSampleOntology();
+
+        VisibilityJson json = VisibilityJson.updateVisibilitySourceAndAddWorkspaceId(new VisibilityJson(), "", workspaceId);
+        Visibility visibility = getVisibilityTranslator().toVisibility(json).getVisibility();
+
+        Vertex source = getGraph().prepareVertex(visibility).save(authorizations);
+        Vertex target = getGraph().prepareVertex(visibility).save(authorizations);
+        EdgeBuilder edgeBuilder = getGraph().prepareEdge(source, target, SANDBOX_RELATIONSHIP_IRI, visibility);
+        edgeBuilder.setProperty(SANDBOX_PROPERTY_IRI, "a value", visibility);
+        edgeBuilder.save(authorizations);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete relationship that have edges using it");
+        getOntologyRepository().deleteRelationship(SANDBOX_RELATIONSHIP_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testExceptionDeletingSandboxedRelationshipsWithDescendants() throws Exception {
+        createSampleOntology();
+
+        Relationship relationship = getOntologyRepository().getRelationshipByIRI(SANDBOX_RELATIONSHIP_IRI, workspaceId);
+
+        VisibilityJson json = VisibilityJson.updateVisibilitySourceAndAddWorkspaceId(new VisibilityJson(), "", workspaceId);
+        Visibility visibility = getVisibilityTranslator().toVisibility(json).getVisibility();
+
+        List<Concept> things = Collections.singletonList(getOntologyRepository().getEntityConcept(workspaceId));
+        getOntologyRepository().getOrCreateRelationshipType(relationship, things, things, SANDBOX_RELATIONSHIP_IRI + "child", true, adminUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        thrown.expect(VisalloException.class);
+        thrown.expectMessage("Unable to delete relationship that have children");
+        getOntologyRepository().deleteRelationship(SANDBOX_RELATIONSHIP_IRI, adminUser, workspaceId);
+    }
+
+    @Test
+    public void testDeletingSandboxedRelationships() throws Exception {
+        createSampleOntology();
+        Relationship relationship = getOntologyRepository().getRelationshipByIRI(SANDBOX_RELATIONSHIP_IRI, workspaceId);
+        String propertyThatShouldBeDeleted = SANDBOX_PROPERTY_IRI + ".relationship";
+
+        createProperty(propertyThatShouldBeDeleted, SANDBOX_DISPLAY_NAME, Arrays.asList(), Arrays.asList(relationship), workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        relationship = getOntologyRepository().getRelationshipByIRI(SANDBOX_RELATIONSHIP_IRI, workspaceId);
+
+        OntologyProperty property = getOntologyRepository().getPropertyByIRI(propertyThatShouldBeDeleted, workspaceId);
+        assertTrue("Property exists", property != null && property.getIri().equals(propertyThatShouldBeDeleted));
+        assertTrue("Relationship has property", relationship.getProperties().stream().anyMatch(ontologyProperty -> ontologyProperty.getIri().equals(propertyThatShouldBeDeleted)));
+
+        getOntologyRepository().deleteRelationship(SANDBOX_RELATIONSHIP_IRI, adminUser, workspaceId);
+        getOntologyRepository().clearCache(workspaceId);
+
+        relationship = getOntologyRepository().getRelationshipByIRI(SANDBOX_RELATIONSHIP_IRI, workspaceId);
+        assertTrue("Relationship should have been deleted", relationship == null);
+
+        property = getOntologyRepository().getPropertyByIRI(propertyThatShouldBeDeleted, workspaceId);
+        assertTrue("Property only used in this relationship is deleted", property == null);
+
+        property = getOntologyRepository().getPropertyByIRI(SANDBOX_PROPERTY_IRI, workspaceId);
+        assertTrue("Property used in other relationships is updated", property != null);
+        assertEquals(1, property.getRelationshipIris().size());
+        assertEquals(PUBLIC_RELATIONSHIP_IRI, property.getRelationshipIris().get(0));
     }
 
     @Test
@@ -434,7 +671,7 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
         assertEquals(2, publicApiRelationship.getProperties().size());
         assertTrue(publicApiRelationship.getProperties().stream().anyMatch(p -> p.equals(PUBLIC_PROPERTY_IRI)));
         assertTrue(publicApiRelationship.getProperties().stream().anyMatch(p -> p.equals(SANDBOX_PROPERTY_IRI)));
-        assertEquals(1, sandboxApiConcept.getProperties().size());
+        assertEquals(2, sandboxApiConcept.getProperties().size());
         assertEquals(SANDBOX_PROPERTY_IRI, sandboxApiConcept.getProperties().get(0));
         assertEquals(1, sandboxApiRelationship.getProperties().size());
         assertEquals(SANDBOX_PROPERTY_IRI, sandboxApiRelationship.getProperties().get(0));
@@ -876,11 +1113,14 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
         OntologyProperty publicProperty = createProperty(PUBLIC_PROPERTY_IRI, PUBLIC_DISPLAY_NAME, publicConcept, publicRelationship, PUBLIC);
         OntologyProperty sandboxedProperty = createProperty(SANDBOX_PROPERTY_IRI, SANDBOX_DISPLAY_NAME, Arrays.asList(publicConcept, sandboxedConcept), Arrays.asList(publicRelationship, sandboxedRelationship), workspaceId);
 
+        OntologyProperty sandboxedPropertyOnlySandboxedConcept = createProperty(SANDBOX_PROPERTY_IRI_ONLY_SANDBOXED_CONCEPT, SANDBOX_DISPLAY_NAME, Arrays.asList(sandboxedConcept), Arrays.asList(), workspaceId);
+
         getOntologyRepository().clearCache();
 
         return new SampleOntologyDetails(
                 publicConcept.getId(), publicRelationship.getId(), publicProperty.getId(),
-                sandboxedConcept.getId(), sandboxedRelationship.getId(), sandboxedProperty.getId());
+                sandboxedConcept.getId(),
+                sandboxedRelationship.getId(), sandboxedProperty.getId(), sandboxedPropertyOnlySandboxedConcept.getId());
     }
 
     private Concept createConcept(String iri, String displayName, String workspaceId) {
@@ -915,16 +1155,19 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
         String publicPropertyId;
 
         String sandboxConceptId;
+        String sandboxChildConceptId;
         String sandboxRelationshipId;
         String sandboxPropertyId;
+        String sandboxPropertyIdSandboxedConcept;
 
-        SampleOntologyDetails(String publicConceptId, String publicRelationshipId, String publicPropertyId, String sandboxConceptId, String sandboxRelationshipId, String sandboxPropertyId) {
+        SampleOntologyDetails(String publicConceptId, String publicRelationshipId, String publicPropertyId, String sandboxConceptId, String sandboxRelationshipId, String sandboxPropertyId, String sandboxPropertyIdSandboxedConcept) {
             this.publicConceptId = publicConceptId;
             this.publicRelationshipId = publicRelationshipId;
             this.publicPropertyId = publicPropertyId;
             this.sandboxConceptId = sandboxConceptId;
             this.sandboxRelationshipId = sandboxRelationshipId;
             this.sandboxPropertyId = sandboxPropertyId;
+            this.sandboxPropertyIdSandboxedConcept = sandboxPropertyIdSandboxedConcept;
         }
     }
 
@@ -1138,7 +1381,7 @@ public abstract class OntologyRepositoryTestBase extends VisalloInMemoryTestBase
             InputStream glyphIconStream = OntologyRepositoryTestBase.class.getResourceAsStream(GLYPH_ICON_FILE);
             IOUtils.copy(glyphIconStream, new FileOutputStream(glyphIconPath.toFile()));
         } else {
-             testOwl = new File(owlUri);
+            testOwl = new File(owlUri);
         }
         getOntologyRepository().importFile(testOwl, IRI.create(iri), authorizations);
     }

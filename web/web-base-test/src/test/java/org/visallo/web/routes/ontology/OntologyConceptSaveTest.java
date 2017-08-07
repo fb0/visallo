@@ -8,13 +8,15 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.visallo.core.exception.VisalloAccessDeniedException;
 import org.visallo.core.exception.VisalloException;
 import org.visallo.core.model.ontology.Concept;
-import org.visallo.core.model.ontology.OntologyRepository;
 import org.visallo.core.model.ontology.OntologyRepositoryBase;
+import org.visallo.core.model.workspace.WorkspaceUser;
 import org.visallo.web.clientapi.model.ClientApiOntology;
 import org.visallo.web.clientapi.model.Privilege;
 import org.visallo.web.clientapi.model.SandboxStatus;
+import org.visallo.web.clientapi.model.WorkspaceAccess;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
@@ -122,7 +124,7 @@ public class OntologyConceptSaveTest extends OntologyRouteTestBase {
         String displayName = "New Concept";
         String glyph = "glyph.png";
         String color = "red";
-        ClientApiOntology.Concept response = route.handle(displayName,null, thingIri, glyph, color, WORKSPACE_ID, user);
+        ClientApiOntology.Concept response = route.handle(displayName, null, thingIri, glyph, color, WORKSPACE_ID, user);
 
         String originalIri = response.getTitle();
         assertTrue(originalIri.matches(OntologyRepositoryBase.BASE_OWL_IRI + "/new_concept#[a-z0-9]+"));
@@ -146,6 +148,8 @@ public class OntologyConceptSaveTest extends OntologyRouteTestBase {
         assertTrue(response.getTitle().matches(OntologyRepositoryBase.BASE_OWL_IRI + "/new_concept#[a-z0-9]+"));
 
         // ensure that changing workspace changes the iri
+        WorkspaceUser workspaceUser = new WorkspaceUser(user.getUserId(), WorkspaceAccess.WRITE, true);
+        when(workspaceRepository.findUsersWithAccess("other-workspace", user)).thenReturn(Collections.singletonList(workspaceUser));
         response = route.handle(displayName, null, thingIri, "other.png", "orange", "other-workspace", user);
         assertNotEquals(originalIri, response.getTitle());
         assertTrue(response.getTitle().matches(OntologyRepositoryBase.BASE_OWL_IRI + "/new_concept#[a-z0-9]+"));

@@ -17,6 +17,7 @@ import org.visallo.core.model.user.UserRepository;
 import org.visallo.core.model.workQueue.WorkQueueRepository;
 import org.visallo.core.model.workspace.WorkspaceHelper;
 import org.visallo.core.model.workspace.WorkspaceRepository;
+import org.visallo.core.model.workspace.WorkspaceUser;
 import org.visallo.core.security.DirectVisibilityTranslator;
 import org.visallo.core.security.VisibilityTranslator;
 import org.visallo.core.user.ProxyUser;
@@ -24,6 +25,7 @@ import org.visallo.core.user.User;
 import org.visallo.vertexium.model.user.InMemoryUser;
 import org.visallo.web.CurrentUser;
 import org.visallo.web.SessionUser;
+import org.visallo.web.clientapi.model.WorkspaceAccess;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -123,6 +125,9 @@ public abstract class RouteTestBase {
         when(request.getAttribute(eq(WORKSPACE_ID_ATTRIBUTE_NAME))).thenReturn(WORKSPACE_ID);
 
         when(workspaceRepository.hasReadPermissions(eq(WORKSPACE_ID), eq(user))).thenReturn(true);
+
+        WorkspaceUser workspaceUser = new WorkspaceUser(user.getUserId(), WorkspaceAccess.WRITE, true);
+        when(workspaceRepository.findUsersWithAccess(WORKSPACE_ID, user)).thenReturn(Collections.singletonList(workspaceUser));
 
         responseByteArrayOutputStream = new ByteArrayOutputStream();
         when(response.getWriter()).thenReturn(new PrintWriter(responseByteArrayOutputStream));

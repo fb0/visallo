@@ -583,6 +583,10 @@ public class InMemoryOntologyRepository extends OntologyRepositoryBase {
         String cacheKey = workspaceId;
         Map<String, InMemoryConcept> workspaceCache = conceptsCache.compute(cacheKey, (k, v) -> v == null ? new HashMap<>() : v);
         workspaceCache.remove(concept.getIRI());
+
+        for (OntologyProperty property : getProperties(workspaceId)) {
+            property.getConceptIris().remove(concept.getIRI());
+        }
     }
 
     @Override
@@ -597,6 +601,10 @@ public class InMemoryOntologyRepository extends OntologyRepositoryBase {
         String cacheKey = workspaceId;
         Map<String, InMemoryRelationship> workspaceCache = relationshipsCache.compute(cacheKey, (k, v) -> v == null ? new HashMap<>() : v);
         workspaceCache.remove(relationship.getIRI());
+
+        for (OntologyProperty property : getProperties(workspaceId)) {
+            property.getRelationshipIris().remove(relationship.getIRI());
+        }
     }
 
     @Override

@@ -11,11 +11,14 @@ import org.visallo.core.model.ontology.Concept;
 import org.visallo.core.model.ontology.OntologyRepository;
 import org.visallo.core.model.ontology.OntologyRepositoryBase;
 import org.visallo.core.model.ontology.Relationship;
+import org.visallo.core.model.workspace.WorkspaceUser;
 import org.visallo.web.clientapi.model.ClientApiOntology;
 import org.visallo.web.clientapi.model.Privilege;
 import org.visallo.web.clientapi.model.SandboxStatus;
+import org.visallo.web.clientapi.model.WorkspaceAccess;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
@@ -232,6 +235,8 @@ public class OntologyRelationshipSaveTest extends OntologyRouteTestBase {
         assertTrue(response.getTitle().matches(OntologyRepositoryBase.BASE_OWL_IRI + "/new_relationship#[a-z0-9]+"));
 
         // ensure changing the workspace id changes the iri
+        WorkspaceUser workspaceUser = new WorkspaceUser(user.getUserId(), WorkspaceAccess.WRITE, true);
+        when(workspaceRepository.findUsersWithAccess("other-workspace", user)).thenReturn(Collections.singletonList(workspaceUser));
         response = route.handle(displayName, sourceConcepts, targetConcepts, PUBLIC_RELATIONSHIP_IRI, null, "other-workspace", workspaceAuthorizations, user);
         assertNotEquals(originalIri, response.getTitle());
         assertTrue(response.getTitle().matches(OntologyRepositoryBase.BASE_OWL_IRI + "/new_relationship#[a-z0-9]+"));

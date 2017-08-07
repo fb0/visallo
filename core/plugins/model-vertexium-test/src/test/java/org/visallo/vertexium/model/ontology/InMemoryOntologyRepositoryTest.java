@@ -7,6 +7,7 @@ import org.visallo.core.model.ontology.Concept;
 import org.visallo.core.model.ontology.OntologyRepository;
 import org.visallo.core.model.ontology.OntologyRepositoryTestBase;
 import org.visallo.core.model.user.PrivilegeRepository;
+import org.visallo.core.model.workspace.WorkspaceRepository;
 import org.visallo.core.user.SystemUser;
 
 import static org.visallo.core.model.user.UserRepository.USER_CONCEPT_IRI;
@@ -36,6 +37,11 @@ public class InMemoryOntologyRepositoryTest extends OntologyRepositoryTestBase {
                 @Override
                 protected PrivilegeRepository getPrivilegeRepository() {
                     return InMemoryOntologyRepositoryTest.this.getPrivilegeRepository();
+                }
+
+                @Override
+                protected WorkspaceRepository getWorkspaceRepository() {
+                    return InMemoryOntologyRepositoryTest.this.getWorkspaceRepository();
                 }
             };
         } catch (Exception ex) {
