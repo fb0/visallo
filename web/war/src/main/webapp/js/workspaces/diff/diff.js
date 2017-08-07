@@ -171,8 +171,9 @@ define([
             ]).spread(function(store, selectedObjects) {
                 var state = store.getState(),
                     workspaceId = state.workspace.currentId,
-                    verticesById = state.element[workspaceId] || {},
-                    edgesById = verticesById,
+                    elementStore = state.element[workspaceId] || {},
+                    verticesById = elementStore.vertices || {},
+                    edgesById = elementStore.edges || {},
                     selectedById = selectedObjects.vertices.concat(selectedObjects.edges)
                         .map(function(object) { return object.id; })
                         .reduce(function(selected, id) {

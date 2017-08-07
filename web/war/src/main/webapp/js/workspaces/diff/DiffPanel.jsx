@@ -238,7 +238,7 @@ define([
                     })}
                     onClick={() => onVertexRowClick(active ? null : vertexId)}
                     draggable={true}
-                    onDragStart={e => { console.log('dragStartHere'); this.onDragStart(e); }}
+                    onDragStart={this.onDragStart}
                     data-diff-id={ vertexId }
                     data-vertex-id={ vertexId }>
                     <div className="vertex-label">
