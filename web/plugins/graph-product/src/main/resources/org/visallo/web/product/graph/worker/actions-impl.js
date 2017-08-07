@@ -26,10 +26,6 @@ define([
 
     const api = {
         updateRootId: ({ productId, nodeId }) => (dispatch, getState) => {
-            const state = getState();
-            const workspaceId = state.workspace.currentId;
-            const product = state.product.workspaces[workspaceId].products[productId];
-
             productActions.updateLocalData(productId, 'rootId', nodeId);
         },
 
@@ -255,7 +251,6 @@ define([
         removeElements: ({ productId, elements, undoable}) => (dispatch, getState) => {
             const state = getState();
             const workspaceId = state.workspace.currentId;
-            const workspace = state.workspace.byId[workspaceId];
 
             if (workspaceEditable(state) && elements &&
                 (elements.vertexIds && elements.vertexIds.length) ||
@@ -529,7 +524,7 @@ define([
     return api;
 
     function getAdditionalRemovedElementIds(product, removeElements, removeChildren) {
-        const { compoundNodes: collapsedNodes, vertices } = product.extendedData;
+        const { compoundNodes: collapsedNodes } = product.extendedData;
         const collapsedNodeIds = removeElements.collapsedNodeIds || [];
         const additionalVertexIds = [];
         const additionalCollapsedNodeIds = [];

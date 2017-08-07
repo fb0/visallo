@@ -41,7 +41,6 @@ define([
         const num = showNum ? ` (${F.number.pretty(edges.length)})` : '';
         return display + num;
     };
-    const propTypesElementArrays = { vertices: PropTypes.array, edges: PropTypes.array };
     const propTypesElementObjects = { vertices: PropTypes.object, edges: PropTypes.object };
 
     let memoizeForStorage = {};
@@ -514,8 +513,7 @@ define([
         },
 
         onCollapseSelectedNodes(nodes) {
-            const { product, productElementIds, rootId } = this.props;
-            const collapsedNodes = product.extendedData.compoundNodes;
+            const { product, rootId } = this.props;
 
             if (nodes.length < 2) return;
 
@@ -783,7 +781,7 @@ define([
             const collapsedNodes = product.extendedData.compoundNodes;
 
             if (collapsedNodes[rootId] && collapsedNodes[rootId].visible) {
-                return collapsedNodes[id];
+                return collapsedNodes[rootId];
             } else {
                 const children = [];
 
@@ -811,7 +809,7 @@ define([
             const filterByRoot = (items) => _.values(_.pick(items, rootNode.children));
 
             const cyNodeConfig = (node) => {
-                const { id, type, pos, children, parent, title } = node;
+                const { id, type, pos, title } = node;
                 let selected, classes, data;
 
                 if (type === 'vertex') {
@@ -848,7 +846,7 @@ define([
             const renderedNodeIds = {};
 
             const cyVertices = filterByRoot(productVertices).reduce((nodes, nodeData) => {
-                const { type, id, pos, parent } = nodeData;
+                const { id, parent } = nodeData;
                 const cyNode = cyNodeConfig(nodeData);
 
                 if (ghosts && id in ghosts) {
@@ -958,10 +956,9 @@ define([
             });
 
             const cyCollapsedNodes = filterByRoot(collapsedNodes).reduce((nodes, nodeData) => {
-                const { type, id, pos, parent, children } = nodeData;
                 const cyNode = cyNodeConfig(nodeData);
 
-                renderedNodeIds[id] = true;
+                renderedNodeIds[nodeData.id] = true;
 
                 if (ghosts) {
                     _.mapObject(ghosts, ((ghost, ghostId) => {
@@ -980,7 +977,7 @@ define([
                                 ...cyNode,
                                 data: ghostData,
                                 classes: mapVertexToClasses(ghostId, vertices, focusing, registry['org.visallo.graph.node.class']),
-                                position: retina.pointsToPixels(ghosts[id]),
+                                position: retina.pointsToPixels(ghosts[nodeData.id]),
                                 grabbable: false,
                                 selectable: false
                             });

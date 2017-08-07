@@ -193,13 +193,11 @@ define([
 
                     return u.updateIn(
                         `extendedData.compoundNodes`,
-                        collapsedNodes => _.mapObject(collapsedNodes, ({ id, visible, ...rest }) => (
-                            {
-                                id,
-                                visible: visibleCollapsedNodes[id],
-                                ...rest
-                            }
-                        )), product);
+                        collapsedNodes => _.mapObject(collapsedNodes, ({ id, ...rest }) => ({
+                            ...rest,
+                            id,
+                            visible: visibleCollapsedNodes[id]
+                        })), product);
                 }
             }
 
