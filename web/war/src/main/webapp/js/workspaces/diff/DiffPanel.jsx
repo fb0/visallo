@@ -6,8 +6,7 @@ define([
     'util/vertex/formatters',
     'util/privileges',
     'util/dnd',
-    'components/visibility/VisibilityViewer',
-    'fast-json-patch'
+    'components/visibility/VisibilityViewer'
 ], function(
     createReactClass,
     PropTypes,
@@ -16,8 +15,7 @@ define([
     F,
     Privileges,
     dnd,
-    VisibilityViewer,
-    fastJsonPatch) {
+    VisibilityViewer) {
     'use strict';
 
     const ELEMENT_SIZE = 45;
