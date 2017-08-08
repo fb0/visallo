@@ -9,6 +9,7 @@
  * @attr {boolean} [limitParentConceptId=''] Only show properties that are attached to this concept or it's descendents
  * @attr {boolean} [onlySearchable=false] Only show properties that have searchable attribute equal to true in ontology
  * @attr {boolean} [onlySortable=false] Only show properties that have sortable attribute equal to true in ontology
+ * @attr {string} [onlyDataTypes=[]] Only show properties that have matching data type in ontology
  * @attr {boolean} [rollupCompound=true] Hide all dependant properties and only show the compound/parent fields
  * @attr {boolean} [focus=false] Activate the field for focus when finished rendering
  * @attr {string} [selectedProperty=''] Default the selection to this property IRI
@@ -91,10 +92,14 @@ define([
                 properties,
                 onlySearchable,
                 onlySortable,
+                onlyDataTypes,
                 showAdminConcepts,
                 limitParentConceptId
             } = this.attr;
 
+            if (_.isArray(onlyDataTypes)) {
+                filter.dataTypes = onlyDataTypes
+            }
             if (onlySearchable === true) {
                 filter.searchable = true;
             }

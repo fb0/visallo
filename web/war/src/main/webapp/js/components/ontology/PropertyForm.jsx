@@ -13,6 +13,72 @@ define([
     RelationshipSelector,
     Alert) {
 
+    const DataTypes = [
+        {
+            label: i18n('ontology.property.dataformat.text'),
+            options: [
+                { type: 'string', label: i18n('ontology.property.dataformat.text.string') },
+                { type: 'string', displayType: 'link', label: i18n('ontology.property.dataformat.text.link') }
+            ]
+        },
+        {
+            label: i18n('ontology.property.dataformat.number'),
+            options: [
+                { type: 'integer', label: i18n('ontology.property.dataformat.number.integer') },
+                { type: 'double', label: i18n('ontology.property.dataformat.number.double') },
+                { type: 'currency', label: i18n('ontology.property.dataformat.number.currency') },
+                { type: 'double', displayType: 'duration', label: i18n('ontology.property.dataformat.number.duration') },
+                { type: 'integer', displayType: 'bytes', label: i18n('ontology.property.dataformat.number.bytes') }
+            ]
+        },
+        {
+            label: i18n('ontology.property.dataformat.date'),
+            options: [
+                { type: 'date', label: i18n('ontology.property.dataformat.date.date') },
+                { type: 'date', displayType: 'dateOnly', label: i18n('ontology.property.dataformat.date.dateOnly') }
+            ]
+        },
+        {
+            label: i18n('ontology.property.dataformat.location'),
+            options: [
+                { type: 'geoLocation', label: i18n('ontology.property.dataformat.location.geoLocation') }
+            ]
+        }
+    ];
+    const transformOptions = dataTypes => {
+        if (_.isArray(dataTypes) && dataTypes.length) {
+            const filtered = DataTypes.map(group => {
+                return { ...group, options: group.options.filter(option => dataTypes.includes(option.type))}
+            })
+            return filtered.filter(group => group.options.length)
+        }
+        return DataTypes;
+    }
+    const DataTypeSelect = function(props) {
+        const { type, dataTypes, ...rest } = props;
+        const groups = transformOptions(dataTypes)
+
+        return (
+            <select value={type || ''} {...rest}>
+                <option value="">{i18n('ontology.property.dataformat.placeholder')}</option>
+                {
+                    groups.map(group => (
+                        <optgroup key={group.label} label={group.label}>
+                            {
+                                group.options.map(option => {
+                                    const { type, displayType, label } = option;
+                                    const combined = _.compact([type, displayType]).join('|');
+                                    return (
+                                        <option key={combined} value={combined}>{label}</option>
+                                    )
+                                })
+                            }
+                        </optgroup>
+                    ))
+                }
+            </select>
+        )
+    }
     const PropertyForm = createReactClass({
         propTypes: {
             transformForSubmit: PropTypes.func.isRequired,
@@ -21,7 +87,9 @@ define([
             onCancel: PropTypes.func.isRequired,
             displayName: PropTypes.string,
             domain: PropTypes.string,
-            type: PropTypes.string
+            type: PropTypes.string,
+            dataType: PropTypes.string,
+            dataTypes: PropTypes.arrayOf(PropTypes.string)
         },
         getInitialState() {
             return {};
@@ -45,11 +113,12 @@ define([
         },
         render() {
             const { domain, type } = this.state;
-            const { conceptId, relationshipId, error, transformForSubmit, transformForInput } = this.props;
+            const { conceptId, relationshipId, dataType, dataTypes, error, transformForSubmit, transformForInput } = this.props;
             const value = this.getValue();
             const valueForInput = transformForInput(value);
             const { valid, reason, value: valueForSubmit } = transformForSubmit(value);
             const disabled = !valid || !type || !domain;
+            const filterDataTypes = dataTypes ? dataTypes : dataType ? [dataType] : null;
 
             return (
                 <div className="ontology-form">
@@ -76,27 +145,7 @@ define([
                             onSelected={this.onDomainSelected} />)
                     }
 
-                    <select value={type || ''} onChange={this.handleTypeChange}>
-                        <option value="">Select Data Format…</option>
-                        <optgroup label={i18n('ontology.property.dataformat.text')}>
-                            <option value="string">{i18n('ontology.property.dataformat.text.string')}</option>
-                            <option value="string|link">{i18n('ontology.property.dataformat.text.link')}</option>
-                        </optgroup>
-                        <optgroup label={i18n('ontology.property.dataformat.number')}>
-                            <option value="integer">{i18n('ontology.property.dataformat.number.integer')}</option>
-                            <option value="double">{i18n('ontology.property.dataformat.number.double')}</option>
-                            <option value="currency">{i18n('ontology.property.dataformat.number.currency')}</option>
-                            <option value="double|duration">{i18n('ontology.property.dataformat.number.duration')}</option>
-                            <option value="integer|bytes">{i18n('ontology.property.dataformat.number.bytes')}</option>
-                        </optgroup>
-                        <optgroup label={i18n('ontology.property.dataformat.date')}>
-                            <option value="date">{i18n('ontology.property.dataformat.date.date')}</option>
-                            <option value="date|dateOnly">{i18n('ontology.property.dataformat.date.dateOnly')}</option>
-                        </optgroup>
-                        <optgroup label={i18n('ontology.property.dataformat.location')}>
-                            <option value="geoLocation">{i18n('ontology.property.dataformat.location.geoLocation')}</option>
-                        </optgroup>
-                    </select>
+                    <DataTypeSelect type={type} dataTypes={filterDataTypes} onChange={this.handleTypeChange} />
 
                     <div className="base-select-form-buttons">
                         <button onClick={this.props.onCancel}

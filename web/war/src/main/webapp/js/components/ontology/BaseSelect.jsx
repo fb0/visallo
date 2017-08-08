@@ -235,7 +235,6 @@ define([
             const indent = (option[depthKey] || 0) * 15;
 
             if (option.header) {
-                //TODO divider
                 return (
                     <div
                         className={className.join(' ')}
@@ -253,7 +252,7 @@ define([
                 <div className={className.join(' ')}
                     key={key}
                     style={{ ...style, paddingLeft: `${indent}px` }}
-                    title={`${option[pathKey]}${ option.displayNameSub ? `\n${option.displayNameSub}` : ''}`}
+                    title={`${option[pathKey] || option[labelKey]}${ option.displayNameSub ? `\n${option.displayNameSub}` : ''}`}
                     {...events}>
                     {
                         option.glyphIconHref ? (

@@ -31,7 +31,8 @@ define([
                 deleteable: PropTypes.bool,
                 sortable: PropTypes.bool,
                 updateable: PropTypes.bool,
-                dataType: PropTypes.string
+                dataType: PropTypes.string,
+                dataTypes: PropTypes.array
             }),
             value: PropTypes.string,
             properties: PropTypes.array.isRequired,
@@ -60,6 +61,9 @@ define([
                 let test = true;
                 if (filter && filter.properties) {
                     test = test && p.title in filter.properties;
+                }
+                if (test && filter && _.isArray(filter.dataTypes) && filter.dataTypes.length) {
+                    test = test && filter.dataTypes.includes(p.dataType)
                 }
                 if (test && filter && filter.conceptId) {
                     const conceptProps = propertiesByConcept[filter.conceptId];

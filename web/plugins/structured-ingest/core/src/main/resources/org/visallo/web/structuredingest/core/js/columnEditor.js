@@ -22,6 +22,26 @@ define([
 
     var idIncrementor = 0;
 
+    const headerTypeToDataTypes = type => {
+        if (type) {
+            switch (type) {
+                case 'Boolean':
+                    return ['string', 'boolean'];
+
+                case 'Number':
+                    return ['geoLocation', 'integer', 'currency', 'decimal', 'double', 'number', 'string'];
+
+                case 'Date':
+                case 'DateTime':
+                    return ['date'];
+
+                case 'String':
+                    return ['string'];
+            }
+        }
+    };
+
+
     return defineComponent(ColumnEditor, withDataRequest);
 
     function ColumnEditor() {
@@ -234,28 +254,11 @@ define([
                     .then(function(properties) {
                         var ontologyProperty = property && _.findWhere(properties.list, { title: property.name });
                         var type = self.attr.type;
-                        var filtered = type ?
-                            _.filter(properties.list, function(property) {
-                                var dataType = property.dataType;
-                                switch (type) {
-                                    case 'Boolean':
-                                        return dataType === 'string' || dataType === 'boolean'     
-                                        
-                                    case 'Number':
-                                        return ['geoLocation', 'integer', 'decimal', 'double', 'number', 'string'].includes(dataType);
-                                    case 'Date':
-                                    case 'DateTime':
-                                        return dataType === 'date'
-
-                                    case 'String':
-                                        return dataType === 'string'
-                                }
-                                return true;
-                            }) : properties.list;
-
+                        var onlyDataTypes = headerTypeToDataTypes(type);
+                        
                         FieldSelection.attachTo(self.$node.find('.field').teardownComponent(FieldSelection).show(), {
                             placeholder: i18n('csv.file_import.mapping.properties.placeholder'),
-                            properties: filtered,
+                            onlyDataTypes: onlyDataTypes,
                             rollupCompound: false,
                             selectedProperty: ontologyProperty,
                             limitParentConceptId: conceptProperty.value
