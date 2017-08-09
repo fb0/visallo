@@ -165,6 +165,9 @@ define([
                     });
                 },
                 editCollapsedNode: (event, { collapsedNodeId }) => { this.onEditCollapsedNode(collapsedNodeId)},
+                selectCollapsedNodeContents: (event, { collapsedNodeId, select }) => {
+                    this.onSelectCollapsedNodeContents(collapsedNodeId, select)
+                },
                 uncollapse: (event, { collapsedNodeId }) => {
                     this.props.onUncollapseNodes(this.props.product.id, collapsedNodeId);
                 },
@@ -619,6 +622,46 @@ define([
             }
         },
 
+        onSelectCollapsedNodeContents(collapsedNodeIds, select) {
+            const { selection, product, elements, onSetSelection, onAddSelection, onRemoveSelection } = this.props;
+            const { compoundNodes: collapsedNodes }= product.extendedData;
+            let vertices = [];
+            let edges = [];
+
+            collapsedNodeIds = _.isArray(collapsedNodeIds) ? collapsedNodeIds : [collapsedNodeIds];
+
+            collapsedNodeIds.forEach(id => {
+                vertices = vertices.concat(getVertexIdsFromCollapsedNode(collapsedNodes, id));
+                edges = edges.concat(_.values(elements.edges).reduce((ids, edge) => {
+                    if (vertices.includes(edge.inVertexId) && vertices.includes(edge.outVertexId)) {
+                        ids.push(edge.id);
+                    }
+                    return ids;
+                }, []));
+            });
+
+            switch (select) {
+                case 'all':
+                    onAddSelection({ vertices, edges });
+                    break;
+                case 'none':
+                    onRemoveSelection({ vertices, edges });
+                    break;
+                case 'vertices':
+                    onSetSelection({
+                        vertices: _.uniq(Object.keys(selection.vertices).concat(vertices)),
+                        edges: _.without(Object.keys(selection.edges), edges)
+                    });
+                    break;
+                case 'edges':
+                    onSetSelection({
+                        vertices: _.without(Object.keys(selection.vertices), vertices),
+                        edges: _.uniq(Object.keys(selection.edges).concat(edges))
+                    });
+                    break;
+            }
+        },
+
         onUpdatePreview(data) {
             this.props.onUpdatePreview(this.props.product.id, data)
         },
@@ -652,7 +695,7 @@ define([
         onTap(event) {
             const { cy, target, position } = event;
             const { x, y } = position;
-            const { ctrlKey, shiftKey } = event.originalEvent;
+            const { ctrlKey, shiftKey, metaKey } = event.originalEvent;
             const { draw, paths } = this.state;
 
             if (paths) {
@@ -680,7 +723,11 @@ define([
                 } else if (!shiftKey && cy === target) {
                     this.coalesceSelection('clear');
                     this.props.onClearSelection();
+                } else if (!shiftKey && !metaKey && isValidElement(target)) {
+                    this.coalesceSelection('clear');
+                    this.coalesceSelection('add', getCyItemTypeAsString(target), target);
                 }
+
             }
         },
 
