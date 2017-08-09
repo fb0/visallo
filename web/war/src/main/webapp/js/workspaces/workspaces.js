@@ -260,6 +260,10 @@ define([
                         .groupBy(function(w) {
                             return w.sharedToUser ? SHARED : MINE
                         })
+                        .tap(w => {
+                            if (!w[MINE]) w[MINE] = []
+                            if (!w[SHARED]) w[SHARED] = []
+                        })
                         .value(),
                 renderRows = function(userIdToDisplay, isShared) {
                     return function() {
