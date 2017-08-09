@@ -16,7 +16,7 @@
   "devDependencies": {
     "babel-core": "^6.21.0",
     "babel-jest": "^18.0.0",
-    "babel-loader": "^6.2.10",
+    "babel-loader": "^7.1.1",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-transform-amd-to-commonjs": "^0.2.0",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
@@ -37,7 +37,7 @@
     "redux-thunk": "^2.2.0",
     "underscore": "1.8.3",
     "updeep": "^1.0.0",
-    "webpack": "^1.14.0"
+    "webpack": "^3.5.2"
   },
   "jest": {
     "setupFiles": [

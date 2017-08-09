@@ -32,25 +32,27 @@ var VisalloAmdExternals = [
     'react-dom',
     'redux',
     'react-redux'
-].map(path => ({ [path]: { amd: path }}));
+].map(path => ({ [path]: { amd: path, commonjs2: false, commonjs: false }}));
 
 var baseConfig = {
   output: {
-    path: './dist',
+    path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     library: '[name]',
     libraryTarget: 'umd',
   },
   externals: VisalloAmdExternals,
   resolve: {
-    extensions: ['', '.js', '.jsx', '.hbs']
+    extensions: ['.js', '.jsx', '.hbs']
   },
   module: {
-    loaders: [
+    rules: [
         {
             test: /\.jsx?$/,
             exclude: /(node_modules)/,
-            loader: 'babel'
+            use: [
+                { loader: 'babel-loader' }
+            ]
         }
     ]
   },
@@ -58,8 +60,10 @@ var baseConfig = {
   plugins: [
     new webpack.optimize.UglifyJsPlugin({
         mangle: false,
+        sourceMap: true,
         compress: {
-            drop_debugger: false
+            drop_debugger: false,
+            warnings: true
         }
     })
   ]

@@ -9,35 +9,41 @@ var VisalloAmdExternals = [
  'create-react-class',
  'prop-types',
  'react-dom'
-].map(path => ({ [path]: { amd: path }}));
+].map(path => ({ [path]: { amd: path, commonjs2: false, commonjs: false }}));
 
 module.exports = {
   entry: {
     card: './js/card/Card.jsx'
   },
   output: {
-    path: './dist',
+    path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     library: '[name]',
     libraryTarget: 'umd',
   },
   externals: VisalloAmdExternals,
   resolve: {
-    extensions: ['', '.js', '.jsx', '.hbs']
+    extensions: ['.js', '.jsx', '.hbs']
   },
   module: {
-    loaders: [{
-        test: /\.jsx?$/,
-        include: path.join(__dirname, 'js'),
-        loaders: ['babel-loader']
-      }]
+    rules: [
+        {
+            test: /\.jsx?$/,
+            include: path.join(__dirname, 'js'),
+            use: [
+                { loader: 'babel-loader' }
+            ]
+        }
+    ]
   },
   devtool: 'source-map',
   plugins: [
     new webpack.optimize.UglifyJsPlugin({
         mangle: false,
+        sourceMap: true,
         compress: {
-            drop_debugger: false
+            drop_debugger: false,
+            warnings: true
         }
     })
   ]

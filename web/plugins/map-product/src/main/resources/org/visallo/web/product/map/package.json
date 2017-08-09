@@ -13,13 +13,13 @@
   },
   "devDependencies": {
     "babel-core": "^6.14.0",
-    "babel-loader": "^6.2.5",
+    "babel-loader": "^7.1.1",
     "babel-plugin-transform-object-rest-spread": "^6.8.0",
     "babel-plugin-transform-react-display-name": "^6.8.0",
     "babel-plugin-transform-react-jsx": "^6.8.0",
     "babel-preset-es2015": "^6.14.0",
     "react": "15.6.1",
     "react-dom": "15.6.1",
-    "webpack": "^1.13.2"
+    "webpack": "^3.5.2"
   }
 }
