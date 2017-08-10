@@ -3,6 +3,7 @@ package org.visallo.core.model.ontology;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
@@ -1120,12 +1121,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
 
     @Override
     public Concept getConceptByIRI(String conceptIRI, String workspaceId) {
-        for (Concept concept : getConceptsWithProperties(workspaceId)) {
-            if (concept.getIRI().equals(conceptIRI)) {
-                return concept;
-            }
-        }
-        return null;
+        return Iterables.getFirst(getConceptsByIRI(Collections.singletonList(conceptIRI), workspaceId), null);
     }
 
     @Override
@@ -1143,12 +1139,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
 
     @Override
     public OntologyProperty getPropertyByIRI(String propertyIRI, String workspaceId) {
-        for (OntologyProperty prop : getProperties(workspaceId)) {
-            if (prop.getTitle().equals(propertyIRI)) {
-                return prop;
-            }
-        }
-        return null;
+        return Iterables.getFirst(getPropertiesByIRI(Collections.singletonList(propertyIRI), workspaceId), null);
     }
 
     @Override
@@ -1211,12 +1202,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
 
     @Override
     public Relationship getRelationshipByIRI(String relationshipIRI, String workspaceId) {
-        for (Relationship rel : getRelationships(workspaceId)) {
-            if (rel.getIRI().equals(relationshipIRI)) {
-                return rel;
-            }
-        }
-        return null;
+        return Iterables.getFirst(getRelationshipsByIRI(Collections.singletonList(relationshipIRI), workspaceId), null);
     }
 
     @Override
@@ -1667,27 +1653,28 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
     @Override
     @SuppressWarnings("unchecked")
     public ClientApiOntology getClientApiObject(String workspaceId) {
+        Ontology ontology = getOntology(workspaceId);
         Object[] results = ExecutorServiceUtil.runAllAndWait(
-                () -> {
-                    Iterable<Concept> concepts = getConceptsWithProperties(workspaceId);
-                    return Concept.toClientApiConcepts(concepts);
-                },
-                () -> {
-                    Iterable<OntologyProperty> properties = getProperties(workspaceId);
-                    return OntologyProperty.toClientApiProperties(properties);
-                },
-                () -> {
-                    Iterable<Relationship> relationships = getRelationships(workspaceId);
-                    return Relationship.toClientApiRelationships(relationships);
-                }
+                () -> Concept.toClientApiConcepts(ontology.getConcepts()),
+                () -> OntologyProperty.toClientApiProperties(ontology.getProperties()),
+                () -> Relationship.toClientApiRelationships(ontology.getRelationships())
         );
 
-        ClientApiOntology ontology = new ClientApiOntology();
-        ontology.addAllConcepts((Collection<ClientApiOntology.Concept>) results[0]);
-        ontology.addAllProperties((Collection<ClientApiOntology.Property>) results[1]);
-        ontology.addAllRelationships((Collection<ClientApiOntology.Relationship>) results[2]);
+        ClientApiOntology clientOntology = new ClientApiOntology();
+        clientOntology.addAllConcepts((Collection<ClientApiOntology.Concept>) results[0]);
+        clientOntology.addAllProperties((Collection<ClientApiOntology.Property>) results[1]);
+        clientOntology.addAllRelationships((Collection<ClientApiOntology.Relationship>) results[2]);
+        return clientOntology;
+    }
 
-        return ontology;
+    @Override
+    @SuppressWarnings("unchecked")
+    public Ontology getOntology(String workspaceId) {
+        Object[] results = ExecutorServiceUtil.runAllAndWait(
+                () -> getConceptsWithProperties(workspaceId),
+                () -> getRelationships(workspaceId)
+        );
+        return new Ontology((Iterable<Concept>) results[0], (Iterable<Relationship>) results[1], workspaceId);
     }
 
     public final Configuration getConfiguration() {
@@ -1756,7 +1743,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
                 if (concept.getSandboxStatus().equals(SandboxStatus.PRIVATE)) {
                     for (Relationship relationship : getRelationships(workspaceId)) {
                         if (relationship.getDomainConceptIRIs().contains(conceptTypeIri) ||
-                            relationship.getRangeConceptIRIs().contains(conceptTypeIri)) {
+                                relationship.getRangeConceptIRIs().contains(conceptTypeIri)) {
                             throw new VisalloException("Unable to delete concept that is used in domain/range of relationship");
                         }
                     }
@@ -1769,9 +1756,9 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
                     if (results == 0) {
                         List<OntologyProperty> removeProperties = concept.getProperties().stream().filter(ontologyProperty ->
                                 ontologyProperty.getSandboxStatus().equals(SandboxStatus.PRIVATE) &&
-                                ontologyProperty.getRelationshipIris().size() == 0 &&
-                                ontologyProperty.getConceptIris().size() == 1 &&
-                                ontologyProperty.getConceptIris().get(0).equals(conceptTypeIri)
+                                        ontologyProperty.getRelationshipIris().size() == 0 &&
+                                        ontologyProperty.getConceptIris().size() == 1 &&
+                                        ontologyProperty.getConceptIris().get(0).equals(conceptTypeIri)
                         ).collect(Collectors.toList());
 
                         internalDeleteConcept(concept, workspaceId);
@@ -1833,9 +1820,9 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
                     if (results == 0) {
                         List<OntologyProperty> removeProperties = relationship.getProperties().stream().filter(ontologyProperty ->
                                 ontologyProperty.getSandboxStatus().equals(SandboxStatus.PRIVATE) &&
-                                    ontologyProperty.getConceptIris().size() == 0 &&
-                                    ontologyProperty.getRelationshipIris().size() == 1 &&
-                                    ontologyProperty.getRelationshipIris().get(0).equals(relationshipIri)
+                                        ontologyProperty.getConceptIris().size() == 0 &&
+                                        ontologyProperty.getRelationshipIris().size() == 1 &&
+                                        ontologyProperty.getRelationshipIris().get(0).equals(relationshipIri)
                         ).collect(Collectors.toList());
                         internalDeleteRelationship(relationship, workspaceId);
 
@@ -2014,7 +2001,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
     }
 
 
-    private List<Concept> findLoadedConceptsByIntent(String intent, String workspaceId) {
+    protected List<Concept> findLoadedConceptsByIntent(String intent, String workspaceId) {
         List<Concept> results = new ArrayList<>();
         for (Concept concept : getConceptsWithProperties(workspaceId)) {
             String[] conceptIntents = concept.getIntents();
@@ -2025,7 +2012,7 @@ public abstract class OntologyRepositoryBase implements OntologyRepository {
         return results;
     }
 
-    private List<Relationship> findLoadedRelationshipsByIntent(String intent, String workspaceId) {
+    protected List<Relationship> findLoadedRelationshipsByIntent(String intent, String workspaceId) {
         List<Relationship> results = new ArrayList<>();
         for (Relationship relationship : getRelationships(workspaceId)) {
             String[] relationshipIntents = relationship.getIntents();

@@ -3,6 +3,7 @@ package org.visallo.core.security;
 import com.google.inject.Inject;
 import org.vertexium.Element;
 import org.vertexium.Graph;
+import org.visallo.core.model.ontology.Ontology;
 import org.visallo.core.model.ontology.OntologyElement;
 import org.visallo.core.model.ontology.OntologyRepository;
 import org.visallo.core.model.user.PrivilegeRepository;
@@ -22,52 +23,52 @@ public class AllowAllAclProvider extends ACLProvider {
     }
 
     @Override
-    public boolean canDeleteElement(Element element, OntologyElement ontologyElement, User user, String workspaceId) {
+    public boolean canDeleteElement(Element element, OntologyElement ontologyElement, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canDeleteElement(ClientApiElement clientApiElement, OntologyElement ontologyElement, User user, String workspaceId) {
+    public boolean canDeleteElement(ClientApiElement clientApiElement, OntologyElement ontologyElement, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canDeleteProperty(Element element, OntologyElement ontologyElement, String propertyKey, String propertyName, User user, String workspaceId) {
+    public boolean canDeleteProperty(Element element, OntologyElement ontologyElement, String propertyKey, String propertyName, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canDeleteProperty(ClientApiElement clientApiElement, OntologyElement ontologyElement, String propertyKey, String propertyName, User user, String workspaceId) {
+    public boolean canDeleteProperty(ClientApiElement clientApiElement, OntologyElement ontologyElement, String propertyKey, String propertyName, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canUpdateElement(Element element, OntologyElement ontologyElement, User user, String workspaceId) {
+    public boolean canUpdateElement(Element element, OntologyElement ontologyElement, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canUpdateElement(ClientApiElement clientApiElement, OntologyElement ontologyElement, User user, String workspaceId) {
+    public boolean canUpdateElement(ClientApiElement clientApiElement, OntologyElement ontologyElement, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canUpdateProperty(Element element, OntologyElement ontologyElement, String propertyKey, String propertyName, User user, String workspaceId) {
+    public boolean canUpdateProperty(Element element, OntologyElement ontologyElement, String propertyKey, String propertyName, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canUpdateProperty(ClientApiElement clientApiElement, OntologyElement ontologyElement, String propertyKey, String propertyName, User user, String workspaceId) {
+    public boolean canUpdateProperty(ClientApiElement clientApiElement, OntologyElement ontologyElement, String propertyKey, String propertyName, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canAddProperty(Element element, OntologyElement ontologyElement, String propertyKey, String propertyName, User user, String workspaceId) {
+    public boolean canAddProperty(Element element, OntologyElement ontologyElement, String propertyKey, String propertyName, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 
     @Override
-    public boolean canAddProperty(ClientApiElement clientApiElement, OntologyElement ontologyElement, String propertyKey, String propertyName, User user, String workspaceId) {
+    public boolean canAddProperty(ClientApiElement clientApiElement, OntologyElement ontologyElement, String propertyKey, String propertyName, Ontology ontology, User user, String workspaceId) {
         return true;
     }
 }

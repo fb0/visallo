@@ -344,6 +344,8 @@ public interface OntologyRepository {
 
     ClientApiOntology getClientApiObject(String workspaceId);
 
+    Ontology getOntology(String workspaceId);
+
     String guessDocumentIRIFromPackage(File inFile) throws Exception;
 
     /**

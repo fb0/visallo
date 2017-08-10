@@ -40,11 +40,6 @@ public class VertexiumOntologyRepositoryTest extends OntologyRepositoryTestBase 
                 }
 
                 @Override
-                protected AuthorizationRepository getAuthorizationRepository() {
-                    return VertexiumOntologyRepositoryTest.this.getAuthorizationRepository();
-                }
-
-                @Override
                 protected PrivilegeRepository getPrivilegeRepository() {
                     return VertexiumOntologyRepositoryTest.this.getPrivilegeRepository();
                 }
