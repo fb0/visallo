@@ -29,6 +29,8 @@ define([
 
         alreadyWarnedAboutMissingOntology = {};
 
+    const truncatedValueCache = {};
+
     return component;
 
     function isVisibility(property) {
@@ -755,7 +757,38 @@ define([
                         } else if (isSandboxStatus(property) || isRelationshipLabel(property)) {
                             valueSpan.textContent = property.value;
                         } else {
-                            valueSpan.textContent = F.vertex.prop(vertex, property.name, property.key, {truncate: [20]});
+                            const textContent = F.vertex.prop(vertex, property.name, property.key);
+                            const truncatedTextContent = F.string.truncate(textContent, 20);
+
+                            valueSpan.textContent = truncatedValueCache[property.key] && truncatedValueCache[property.key].expanded
+                                ? textContent : truncatedTextContent;
+
+                            if (textContent !== truncatedTextContent) {
+                                truncatedValueCache[property.key] = {
+                                    expanded: false,
+                                    ...truncatedValueCache[property.key],
+                                    full: textContent,
+                                    truncated: truncatedTextContent
+                                };
+
+                                $('<span/>').addClass('value-expand twizzle')
+                                    .text(i18n('properties.value.expand'))
+                                    .appendTo($valueSpan)
+                                    .toggleClass('twizzle-expand', truncatedValueCache[property.key].expanded)
+                                    .on('click', function(e) {
+                                        const cachedValue = truncatedValueCache[property.key]
+                                        const shouldExpand = !cachedValue.expanded;
+
+                                        $valueSpan.contents()
+                                            .filter((i, ele) => ele.nodeType === Node.TEXT_NODE)[0].nodeValue =
+                                            shouldExpand ? cachedValue.full : cachedValue.truncated;
+                                        $(this)
+                                            .text(shouldExpand ? i18n('properties.value.collapse') : i18n('properties.value.expand'))
+                                            .toggleClass('twizzle-expand', shouldExpand);
+
+                                        truncatedValueCache[property.key].expanded = shouldExpand;
+                                    });
+                            }
                         }
                     });
 
