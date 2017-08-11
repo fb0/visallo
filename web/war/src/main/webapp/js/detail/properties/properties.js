@@ -755,7 +755,7 @@ define([
                         } else if (isSandboxStatus(property) || isRelationshipLabel(property)) {
                             valueSpan.textContent = property.value;
                         } else {
-                            valueSpan.textContent = F.vertex.prop(vertex, property.name, property.key);
+                            valueSpan.textContent = F.vertex.prop(vertex, property.name, property.key, {truncate: [20]});
                         }
                     });
 
